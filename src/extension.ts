@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { EditorMcpServer, MCP_SERVER_NAME } from './mcp/editorServer';
+import { FaultHook } from './edits/faults';
 import { ServerManager, ServerState } from './trueforge/serverManager';
 import { SessionManager } from './trueforge/sessionManager';
 import { ChatViewProvider } from './ui/chatProvider';
@@ -154,7 +155,29 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
+  // Dev-only: arm the "corrupt the next write" fault (demo scenario D3).
+  const faults = new FaultHook();
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.dev.corruptNextWrite', () => {
+      if (!devFaultsEnabled()) {
+        void vscode.window.showInformationMessage(
+          'Fault injection is off. Enable "ForgeGuard: Enable Fault Injection" in Settings first.',
+        );
+        return;
+      }
+      faults.armCorruptNextWrite();
+      void vscode.window.showInformationMessage('The next write will be corrupted on purpose.');
+    }),
+  );
+
   log.info('ForgeGuard activated');
+}
+
+/** Fault injection is only available in development mode or when enabled. */
+function devFaultsEnabled(): boolean {
+  const mode = vscode.env.appName.toLowerCase();
+  const devMode = mode.includes('insiders') || mode.includes('dev');
+  return devMode || vscode.workspace.getConfiguration('forgeguard').get<boolean>('dev.enableFaultInjection', false);
 }
 
 export function deactivate(): void {

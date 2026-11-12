@@ -42,6 +42,12 @@ export function expect(actual: unknown): {
       if (actual !== expected) { throw new Error(`expected ${String(expected)} got ${String(actual)}`); }
     },
     toContain(expected: unknown): void {
+      if (typeof actual === 'string') {
+        if (!actual.includes(String(expected))) {
+          throw new Error(`expected ${actual} to contain ${String(expected)}`);
+        }
+        return;
+      }
       const list = actual as unknown[];
       if (!Array.isArray(list) || !list.includes(expected)) {
         throw new Error(`expected collection to contain ${String(expected)}`);
@@ -66,6 +72,12 @@ export function expect(actual: unknown): {
         if (actual === expected) { throw new Error(`expected not ${String(expected)}`); }
       },
       toContain(expected: unknown): void {
+        if (typeof actual === 'string') {
+          if (actual.includes(String(expected))) {
+            throw new Error(`expected ${actual} not to contain ${String(expected)}`);
+          }
+          return;
+        }
         const list = actual as unknown[];
         if (Array.isArray(list) && list.includes(expected)) {
           throw new Error(`expected collection not to contain ${String(expected)}`);

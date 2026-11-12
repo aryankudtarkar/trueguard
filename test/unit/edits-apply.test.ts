@@ -146,7 +146,7 @@ describe('applier', () => {
   });
 
   it('reports partial application truthfully', async () => {
-    const files = { 'src/a.ts': { buffer: BASE, disk: BASE } };
+    const files: Record<string, { buffer: string; disk: string }> = { 'src/a.ts': { buffer: BASE, disk: BASE } };
     const bridge = fakeBridge(files);
     const multi = request();
     const bHunks = computeHunks(BASE, BASE.replace('line three', 'line THREE'));

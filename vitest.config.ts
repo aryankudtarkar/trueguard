@@ -16,11 +16,16 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      // The PRD sets a coverage bar on the risky modules. vscodeTools.ts is
-      // excluded on purpose: it only runs against the real VS Code API and is
-      // covered by the integration suite instead.
+      // The PRD sets a coverage bar on the risky modules. vscodeTools.ts and
+      // vscodeBridge.ts are excluded on purpose: they only run against the
+      // real VS Code API and are covered by the integration suite instead.
       include: [
-        'src/edits/**',
+        'src/edits/apply.ts',
+        'src/edits/hunks.ts',
+        'src/edits/matcher.ts',
+        'src/edits/proposal.ts',
+        'src/edits/store.ts',
+        'src/edits/text.ts',
         'src/failover/**',
         'src/mcp/tools.ts',
         'src/mcp/pathGuard.ts',

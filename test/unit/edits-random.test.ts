@@ -30,7 +30,7 @@ function randomFile(random: () => number, lines: number): string {
 }
 
 /** Random edits: replace, insert or delete a random slice of lines. */
-function randomEdits(random: () => number, base: string): string[] {
+function randomEdits(random: () => number, base: string): string {
   const baseLines = base.split('\n');
   const result = [...baseLines];
   const count = 1 + Math.floor(random() * 3);

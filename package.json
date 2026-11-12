@@ -84,6 +84,11 @@
         "command": "forgeguard.reviewNextChange",
         "title": "ForgeGuard: Review Next Change",
         "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.dev.corruptNextWrite",
+        "title": "ForgeGuard: Dev: Corrupt Next Write",
+        "category": "ForgeGuard"
       }
     ],
     "keybindings": [
