@@ -157,6 +157,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         void vscode.commands.executeCommand('forgeguard.reviewNextChange');
         break;
       }
+      case 'approveCommand': {
+        await this.reviews?.approveCommand(m.toolCallId);
+        break;
+      }
+      case 'denyCommand': {
+        await this.reviews?.denyCommand(m.toolCallId);
+        break;
+      }
     }
   }
 
@@ -256,12 +264,41 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     }
   }
 
-  /**
-   * A review changed: show a change card per file, with a status chip
+  /** A command card: the verbatim command, its risks and the Allow/Deny pair. */
+  private onCommandUpdate(update: ReviewUpdate): void {
+    const command = update.command;
+    if (!command) { return; }
+    const id = `cmd-${command.toolCallId}`;
+    const status = update.kind === 'rejected' ? 'Denied' : 'Awaiting approval';
+    const existing = this.messages.find((m) => m.id === id);
+    if (existing) {
+      this.updateMessage(id, (m) => ({
+        ...m,
+        command: m.command ? { ...m.command, status } : m.command,
+      }));
+      return;
+    }
+    this.messages.push({
+      id,
+      role: 'command',
+      text: command.command,
+      command: {
+        toolCallId: command.toolCallId,
+        command: command.command,
+        cwd: command.cwd,
+        risky: command.risky,
+        status,
+      },
+    });
+    this.post({ type: 'messages', messages: this.messages });
+  }
+
+  /** A review changed: show a change card per file, with a status chip
    * (PRD 6.4). The card is the chat's window into the Changes view.
    */
   private onReviewUpdate(update: ReviewUpdate): void {
     if (!this.reviews || !update.changeSetId) { return; }
+    if (update.kind === 'command') { this.onCommandUpdate(update); return; }
     const changeSet = this.reviews.changeStore.get(update.changeSetId);
     if (!changeSet) { return; }
     const status = statusLabel(update.kind, changeSet.state);

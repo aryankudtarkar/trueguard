@@ -51,6 +51,9 @@ function renderMessages(): void {
       if (m.role === 'change') {
         return renderChangeCard(m);
       }
+      if (m.role === 'command') {
+        return renderCommandCard(m);
+      }
       const el = document.createElement('div');
       el.className = `msg ${m.role}${m.streaming ? ' streaming' : ''}`;
       if (m.role === 'user') {
@@ -104,6 +107,63 @@ function renderChangeCard(m: Message & { role: 'change' }): HTMLElement {
       void vscode.postMessage({ type: 'openReview' });
     });
     el.appendChild(review);
+  }
+  return el;
+}
+
+/** Command card: the verbatim command, its risks, and Allow / Deny (PRD 6.4). */
+function renderCommandCard(m: Message & { role: 'command' }): HTMLElement {
+  const command = m.command;
+  const el = document.createElement('div');
+  el.className = 'msg command';
+  const head = document.createElement('div');
+  head.className = 'changeHead';
+  const name = document.createElement('span');
+  name.className = 'changeName';
+  name.textContent = command?.command ?? m.text;
+  const chip = document.createElement('span');
+  chip.className = `chipStatus ${command?.risky.length ? 'bad' : 'pending'}`;
+  chip.textContent = command?.status ?? '';
+  head.append(name, chip);
+  el.appendChild(head);
+
+  if (command?.cwd) {
+    const cwd = document.createElement('div');
+    cwd.className = 'secondary changeNote';
+    cwd.textContent = `in ${command.cwd}`;
+    el.appendChild(cwd);
+  }
+
+  if (command?.risky.length) {
+    const risk = document.createElement('div');
+    risk.className = 'commandRisk';
+    risk.textContent = `This command ${command.risky.join(', ')}.`;
+    el.appendChild(risk);
+  }
+
+  if (command?.status === 'Awaiting approval') {
+    const row = document.createElement('div');
+    row.className = 'commandRow';
+    const allow = document.createElement('button');
+    allow.textContent = 'Allow';
+    allow.setAttribute('aria-label', `Allow the command ${command?.command ?? ''}`);
+    allow.addEventListener('click', () => {
+      void vscode.postMessage({ type: 'approveCommand', toolCallId: command?.toolCallId ?? '' });
+    });
+    const deny = document.createElement('button');
+    deny.className = 'pill';
+    deny.textContent = 'Deny';
+    deny.setAttribute('aria-label', `Deny the command ${command?.command ?? ''}`);
+    deny.addEventListener('click', () => {
+      void vscode.postMessage({ type: 'denyCommand', toolCallId: command?.toolCallId ?? '' });
+    });
+    row.append(allow, deny);
+    el.appendChild(row);
+  } else if (command?.exitCode !== undefined) {
+    const result = document.createElement('div');
+    result.className = 'secondary changeNote';
+    result.textContent = `Exit code ${command.exitCode} · ${Math.round((command.durationMs ?? 0) / 100) / 10}s`;
+    el.appendChild(result);
   }
   return el;
 }

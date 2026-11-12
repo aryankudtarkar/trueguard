@@ -3,6 +3,7 @@ import { ServerState, type ServerManager } from './serverManager';
 import {
   ToolCallBuffer,
   streamingEventSchema,
+  type ExtractedToolCall,
   type StreamingEvent,
   type ToolApprovalRequiredEvent,
 } from './schemas';
@@ -176,17 +177,31 @@ export class SessionManager implements vscode.Disposable {
   private recordEvent(event: StreamingEvent): void {
     if (event.type === 'model.message.delta' || event.type === 'model.message') {
       this.toolCallBuffer.add(event.tool_calls);
-      if (event.type === 'model.message.delta' && event.finish_reason !== 'tool_calls') { return; }
-      for (const call of this.toolCallBuffer.drain()) {
-        if (!call.id || this.toolCalls.has(call.id)) { continue; }
-        const recorded: RecordedToolCall = { id: call.id, name: call.name, arguments: call.arguments ?? '{}' };
-        this.toolCalls.set(call.id, recorded);
-        this.toolCallEmitter.fire(recorded);
-      }
+      // A call is complete when its arguments are valid JSON. The server may
+      // never send `finish_reason: tool_calls`, so we do not depend on it.
+      const ready = this.toolCallBuffer.completeReady();
+      const forced = event.type === 'model.message.delta' && event.finish_reason === 'tool_calls';
+      const calls = forced ? [...ready, ...this.toolCallBuffer.drain()] : ready;
+      this.emitToolCalls(calls);
+      return;
+    }
+    if (event.type === 'turn.done') {
+      // The turn is over: whatever is left in the buffer is what the model
+      // asked for (a tool call without arguments, for instance).
+      this.emitToolCalls(this.toolCallBuffer.drain());
       return;
     }
     if (event.type === 'tool.approval_required') {
       this.approvalEmitter.fire(event);
+    }
+  }
+
+  private emitToolCalls(calls: ExtractedToolCall[]): void {
+    for (const call of calls) {
+      if (!call.id || this.toolCalls.has(call.id)) { continue; }
+      const recorded: RecordedToolCall = { id: call.id, name: call.name, arguments: call.arguments ?? '{}' };
+      this.toolCalls.set(call.id, recorded);
+      this.toolCallEmitter.fire(recorded);
     }
   }
 

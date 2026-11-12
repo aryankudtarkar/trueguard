@@ -7,6 +7,7 @@ import { logger, redact } from '../util/logger';
 import { PathGuard, type ResolvedPath } from './pathGuard';
 import { registerEditorTools, type EditorToolDeps, type ToolRegistrar } from './tools';
 import { registerEditTools, type EditToolDeps } from './editTool';
+import { registerCommandTools, type CommandRunnerDeps } from './commandTool';
 import { vscodeToolDeps } from './vscodeTools';
 
 /**
@@ -39,6 +40,7 @@ export class EditorMcpServer implements vscode.Disposable {
     private readonly startPort: number = DEFAULT_MCP_PORT,
     private readonly maxPortTries = 32,
     private editTools?: EditToolDeps,
+    private commandTools?: CommandRunnerDeps & { approval: () => Promise<{ command: string; cwd: string; timeoutSec?: number } | undefined> },
   ) {}
 
   getEndpoint(): McpEndpoint | undefined {
@@ -51,6 +53,13 @@ export class EditorMcpServer implements vscode.Disposable {
    */
   setEditTools(tools: EditToolDeps): void {
     this.editTools = tools;
+  }
+
+  /** Attach the command tools (the runner and the approval flow). */
+  setCommandTools(
+    tools: CommandRunnerDeps & { approval: () => Promise<{ command: string; cwd: string; timeoutSec?: number } | undefined> },
+  ): void {
+    this.commandTools = tools;
   }
 
   async start(): Promise<McpEndpoint> {
@@ -144,6 +153,9 @@ export class EditorMcpServer implements vscode.Disposable {
     });
     if (this.editTools) {
       registerEditTools(registrar, this.editTools);
+    }
+    if (this.commandTools) {
+      registerCommandTools(registrar, this.commandTools);
     }
     return server;
   }

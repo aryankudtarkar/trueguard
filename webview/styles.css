@@ -145,6 +145,36 @@ button:disabled { opacity: 0.6; cursor: default; }
   * { transition: none !important; animation: none !important; }
 }
 
+/* Command cards (a command waiting for approval, or its result) */
+.msg.command {
+  width: 100%;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.msg.command .changeName {
+  font-family: var(--vscode-editor-font-family);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msg.command .commandRisk {
+  color: var(--vscode-inputValidation-errorForeground);
+  background: var(--vscode-inputValidation-errorBackground);
+  border-radius: var(--fg-radius);
+  padding: 4px 8px;
+  width: 100%;
+}
+
+.msg.command .commandRow { display: flex; gap: 8px; }
+
 /* Change cards (proposed edits awaiting review) */
 .msg.change {
   width: 100%;

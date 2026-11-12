@@ -10,7 +10,7 @@ export interface ContextChip {
 
 export interface Message {
   readonly id: string;
-  readonly role: 'user' | 'agent' | 'system' | 'tool' | 'change';
+  readonly role: 'user' | 'agent' | 'system' | 'tool' | 'change' | 'command';
   /** For user/system: plain text. For agent: markdown to render sanitized. For tool: name. */
   readonly text: string;
   readonly streaming?: boolean;
@@ -20,6 +20,17 @@ export interface Message {
   readonly toolArgs?: string;
   readonly toolResult?: string;
   readonly expanded?: boolean;
+  /** Command cards: the verbatim command, its risks and its result. */
+  readonly command?: {
+    readonly toolCallId: string;
+    readonly command: string;
+    readonly cwd: string;
+    readonly risky: readonly string[];
+    readonly status: string;
+    readonly exitCode?: number;
+    readonly durationMs?: number;
+    readonly note?: string;
+  };
   /** Change cards: the file, the counts and the status chip. */
   readonly change?: {
     readonly path: string;
@@ -38,7 +49,9 @@ export type WebviewToHostMessage =
   | { readonly type: 'updateChip'; readonly chip: ContextChip | null }
   | { readonly type: 'copyText'; readonly text: string }
   | { readonly type: 'switchModel' }
-  | { readonly type: 'openReview' };
+  | { readonly type: 'openReview' }
+  | { readonly type: 'approveCommand'; readonly toolCallId: string }
+  | { readonly type: 'denyCommand'; readonly toolCallId: string };
 
 export type HostToWebviewMessage =
   | { readonly type: 'state'; readonly serverState: string; readonly working: boolean; readonly pendingReviews: number }

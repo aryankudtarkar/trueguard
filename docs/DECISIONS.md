@@ -95,6 +95,32 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 - **Consequence:** the agent can always parse a tool result, and the marker
   tells it how to narrow the request.
 
+## 2026-11-12 — Amended phase order: the brief-driven anchors move up
+
+- **Context:** docs/brief.pdf (authoritative) makes two capabilities mandatory
+  that the PRD's phase plan left out: **inline edit** (Task A, 10 points) and
+  **context assembly** (B1, 15 points). The PRD also says it must never be
+  edited — changes are proposed here.
+- **Decision:** the phase order is amended as follows (Phase numbers below are
+  the new ones; the old PRD numbers are in brackets):
+
+  | New | Work | Old |
+  | --- | --- | --- |
+  | 5 | Command execution and context hygiene | 5 |
+  | 6 | Failover (G3) | 6 |
+  | 7 | Inline edit (FR-11) — brief Task A | new |
+  | 8 | Context assembly (FR-12) — brief B1 | new |
+  | 9 | Design polish, onboarding, accessibility | 7 |
+  | 10 | Hardening, docs, packaging, demo | 8 |
+
+- **Reason:** the two brief anchors are worth 25 points and are worth nothing
+  if the demo has no time for them. They sit after the three guarantees (G1,
+  G2, G3) are complete and before design polish, so the scoring criteria are
+  covered while the harness is still fresh.
+- **Consequence:** design polish and packaging move last and may be cut down
+  to fit the deadline (20 Nov 2026). The audits, the exit gates and G1–G3 are
+  never cut.
+
 ## 2026-11-12 — Phase 3: the canonical hash ignores the BOM
 
 - **Context:** the same file read from disk and from an editor buffer can

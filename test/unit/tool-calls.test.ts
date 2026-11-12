@@ -71,4 +71,23 @@ describe('tool label', () => {
     expect(toolLabel('get_diagnostics', 'not json')).toBe('get_diagnostics');
     expect(toolLabel('get_diagnostics', '{"other":1}')).toBe('get_diagnostics');
   });
+  it('completes a call when its arguments become valid JSON', () => {
+    const buf = new ToolCallBuffer();
+    // The name arrives first, with empty arguments: not complete yet.
+    buf.add([{ index: 0, id: 'a', function: { name: 'propose_edit', arguments: '' } }]);
+    expect(buf.completeReady()).toEqual([]);
+    // The arguments arrive in the next delta: now it is complete.
+    buf.add([{ index: 0, function: { arguments: '{"changes":[]}' } }]);
+    const ready = buf.completeReady();
+    expect(ready.length).toBe(1);
+    expect(ready[0]?.arguments).toBe('{"changes":[]}');
+  });
+
+  it('does not complete a call whose arguments are still partial', () => {
+    const buf = new ToolCallBuffer();
+    buf.add([{ index: 0, id: 'a', function: { name: 'propose_edit', arguments: '{"chan' } }]);
+    expect(buf.completeReady()).toEqual([]);
+    buf.add([{ index: 0, function: { arguments: 'ges":[]}' } }]);
+    expect(buf.completeReady().length).toBe(1);
+  });
 });

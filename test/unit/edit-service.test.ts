@@ -199,4 +199,65 @@ describe('edit service: the review pipeline', () => {
     expect(changes.pending().length).toBe(0);
     expect(sessions.approvals.length).toBe(0);
   });
+  it('shows a command waiting for approval, with its risky patterns', async () => {
+    sessions.calls.set('call_2', {
+      id: 'call_2',
+      name: 'run_command',
+      arguments: JSON.stringify({ command: 'git push origin main' }),
+    });
+    await service.handleApprovalRequired({ thread_id: 'main', tool_calls: [{ id: 'call_2' }] } as never);
+    expect(sessions.approvals.length).toBe(0); // nothing decided yet
+    const pending = service.getPendingCommands();
+    expect(pending.length).toBe(1);
+    expect(pending[0]?.command).toBe('git push origin main');
+    expect(pending[0]?.risky.join(' ')).toContain('pushes to a remote');
+  });
+
+  it('runs nothing until the user allows the command', async () => {
+    sessions.calls.set('call_2', {
+      id: 'call_2',
+      name: 'run_command',
+      arguments: JSON.stringify({ command: 'echo hi' }),
+    });
+    await service.handleApprovalRequired({ thread_id: 'main', tool_calls: [{ id: 'call_2' }] } as never);
+    // The MCP handler asks for the approval: there is none yet.
+    expect(service.takeCommandApproval()).toBeUndefined();
+    await service.approveCommand('call_2');
+    expect(sessions.approvals[0]?.status).toBe('allow');
+    const approval = service.takeCommandApproval();
+    expect(approval?.command).toBe('echo hi');
+  });
+
+  it('denies a command the user refused', async () => {
+    sessions.calls.set('call_2', {
+      id: 'call_2',
+      name: 'run_command',
+      arguments: JSON.stringify({ command: 'rm -rf /' }),
+    });
+    await service.handleApprovalRequired({ thread_id: 'main', tool_calls: [{ id: 'call_2' }] } as never);
+    await service.denyCommand('call_2', 'too risky');
+    expect(sessions.approvals[0]?.status).toBe('deny');
+    expect(sessions.approvals[0]?.reason).toBe('too risky');
+    expect(service.takeCommandApproval()).toBeUndefined();
+    expect(service.getPendingCommands().length).toBe(0);
+  });
+
+  it('denies a command with invalid arguments', async () => {
+    sessions.calls.set('call_2', { id: 'call_2', name: 'run_command', arguments: JSON.stringify({}) });
+    await service.handleApprovalRequired({ thread_id: 'main', tool_calls: [{ id: 'call_2' }] } as never);
+    expect(sessions.approvals[0]?.status).toBe('deny');
+    expect(service.getPendingCommands().length).toBe(0);
+  });
+
+  it('denies pending commands when the turn is stopped', async () => {
+    sessions.calls.set('call_2', {
+      id: 'call_2',
+      name: 'run_command',
+      arguments: JSON.stringify({ command: 'echo hi' }),
+    });
+    await service.handleApprovalRequired({ thread_id: 'main', tool_calls: [{ id: 'call_2' }] } as never);
+    await service.denyAllPending('The turn was stopped.');
+    expect(sessions.approvals[0]?.status).toBe('deny');
+    expect(service.getPendingCommands().length).toBe(0);
+  });
 });

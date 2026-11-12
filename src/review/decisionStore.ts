@@ -28,6 +28,8 @@ export interface ApprovalDecision {
   status: 'allow' | 'deny';
   /** Per-file accepted hunk ids (only for allow). */
   hunks: HunkDecision[];
+  /** The approved command (only for run_command). */
+  command?: { command: string; cwd: string; timeoutSec?: number };
   reason?: string;
 }
 
@@ -63,6 +65,16 @@ export class DecisionStore {
   /** Take the oldest recorded decision (consuming it). */
   takeOldest(): ApprovalDecision | undefined {
     for (const [id, decision] of this.decisions) {
+      this.decisions.delete(id);
+      return decision;
+    }
+    return undefined;
+  }
+
+  /** Take the oldest decision that matches the predicate (consuming it). */
+  takeOldestWhere(predicate: (decision: ApprovalDecision) => boolean): ApprovalDecision | undefined {
+    for (const [id, decision] of this.decisions) {
+      if (!predicate(decision)) { continue; }
       this.decisions.delete(id);
       return decision;
     }

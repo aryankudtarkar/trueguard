@@ -26,6 +26,7 @@ export default defineConfig({
         'src/edits/proposal.ts',
         'src/edits/store.ts',
         'src/edits/text.ts',
+        'src/exec/**',
         'src/failover/**',
         'src/mcp/tools.ts',
         'src/mcp/pathGuard.ts',
@@ -38,6 +39,12 @@ export default defineConfig({
         functions: 85,
         branches: 80,
         statements: 85,
+        // The PRD sets a higher bar on the trust-critical modules.
+        'src/edits/**': { lines: 90, functions: 90 },
+        'src/mcp/tools.ts': { lines: 90, functions: 90 },
+        // The Windows-only kill path cannot be exercised on macOS/Linux.
+        'src/exec/runner.ts': { lines: 70, functions: 60, branches: 65 },
+        'src/failover/**': { lines: 85 },
       },
     },
   },

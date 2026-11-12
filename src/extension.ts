@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { resolveCommandCwd } from './exec/cwd';
 import { EditorMcpServer, MCP_SERVER_NAME } from './mcp/editorServer';
 import { FaultHook } from './edits/faults';
 import { ChangeStore } from './edits/store';
@@ -35,7 +36,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
         name: MCP_SERVER_NAME,
         enable_tools: ['@all'],
         // The read-only tools never pause the turn; propose_edit always does.
-        require_approval_for_tools: ['propose_edit'],
+        require_approval_for_tools: ['propose_edit', 'run_command'],
         preload: true,
       },
     ];
@@ -46,6 +47,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
   const decisions = new DecisionStore();
   const editService = new EditService(sessions, vscodeBridge(), vscodeProposalContext(), changes, decisions);
   editor.setEditTools({ service: editService });
+
 
   const chatProvider = new ChatViewProvider(
     vscode.Uri.joinPath(context.extensionUri, 'out', 'webview').fsPath,
@@ -59,6 +61,19 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     context.subscriptions.push(d);
     return d;
   };
+
+  // Commands run in a shell inside the workspace, after the user approves the
+  // exact command. Their output goes to the Commands output channel.
+  const commandsChannel = vscode.window.createOutputChannel('ForgeGuard Commands');
+  registerDisposable(commandsChannel);
+  editor.setCommandTools({
+    resolveCwd: async (cwd) =>
+      resolveCommandCwd(cwd, (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath)),
+    defaultTimeoutSec: () =>
+      vscode.workspace.getConfiguration('forgeguard').get<number>('commandTimeoutSec', 120),
+    onOutput: (chunk) => commandsChannel.append(chunk),
+    approval: async () => editService.takeCommandApproval(),
+  });
 
   // The Changes view (pending reviews) and the virtual diff documents.
   const diffProvider = new DiffContentProvider(editService);
@@ -420,6 +435,8 @@ function devFaultsEnabled(): boolean {
   const devMode = mode.includes('insiders') || mode.includes('dev');
   return devMode || vscode.workspace.getConfiguration('forgeguard').get<boolean>('dev.enableFaultInjection', false);
 }
+
+
 
 export function deactivate(): void {
   // Disposables handle teardown (server stop happens in ServerManager.dispose).

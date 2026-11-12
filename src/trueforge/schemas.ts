@@ -112,6 +112,22 @@ export class ToolCallBuffer {
     return out;
   }
 
+  /**
+   * Calls whose arguments are complete (valid JSON) — they will not change
+   * any more. A server may never send `finish_reason: tool_calls`, so the
+   * buffer must not depend on it.
+   */
+  completeReady(): ExtractedToolCall[] {
+    const out: ExtractedToolCall[] = [];
+    for (const [index, call] of [...this.pending.entries()]) {
+      if (!call.name) { continue; }
+      if (!isCompleteJson(call.args)) { continue; }
+      this.pending.delete(index);
+      out.push({ id: call.id, name: call.name, arguments: call.args || undefined });
+    }
+    return out;
+  }
+
   /** Return the complete calls and forget them (one turn = one batch). */
   drain(): ExtractedToolCall[] {
     const out = this.complete();
@@ -121,6 +137,21 @@ export class ToolCallBuffer {
 
   get size(): number {
     return this.pending.size;
+  }
+}
+
+/**
+ * True when the text is a complete JSON value.
+ * An EMPTY argument string means "the arguments have not arrived yet": the
+ * server streams the name first and the arguments in the next delta.
+ */
+function isCompleteJson(text: string): boolean {
+  if (!text) { return false; }
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
   }
 }
 

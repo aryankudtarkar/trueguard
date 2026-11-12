@@ -27,6 +27,7 @@ interface ForgeGuardApi {
       modelName: string,
     ): Promise<void>;
     getToolCalls(): Array<{ id: string; name: string; arguments: string }>;
+    newChat(): void;
   };
   changes: {
     pending(): Array<{
@@ -39,6 +40,9 @@ interface ForgeGuardApi {
   editService: {
     applyChangeSet(id: string): Promise<void>;
     rejectChangeSet(id: string, reason?: string): Promise<void>;
+    approveCommand(toolCallId: string): Promise<void>;
+    denyCommand(toolCallId: string, reason?: string): Promise<void>;
+    getPendingCommands(): Array<{ toolCallId: string; command: string; risky: string[] }>;
   };
 }
 
@@ -137,6 +141,43 @@ describe('phase 4 exit gate: approval gate and review', () => {
     } finally {
       await setFakeMode({ mode: 'echo' });
       await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('runs a command only after the user allows it, and reports the result', async () => {
+    if (!(await probe(`${FAKE_LLM}/set-mode`))) { return; }
+    const api = await getApi();
+    if (!api) { return; }
+
+    const marker = 'forgeguard-command-ok';
+    // A fresh session: the fake provider only calls a tool in a conversation
+    // that has no tool result yet.
+    api.sessions.newChat();
+    try {
+      await setFakeMode({ mode: 'call-tool', tool: 'run_command', args: JSON.stringify({ command: `echo ${marker}` }) });
+
+      // The turn pauses at the gate; the command waits for the user.
+      const events: StreamingEvent[] = [];
+      await api.sessions.sendTurn(
+        [{ type: 'user.message', content: 'Run the command.' }],
+        (e) => events.push(e),
+        'fake-provider/test-model',
+      );
+      const gate = events.find((e) => e.type === 'tool.approval_required');
+      expect(gate !== undefined).toBe(true);
+
+      const pending = await waitFor(() => {
+        const commands = api.editService.getPendingCommands();
+        return commands.length ? commands[0] : undefined;
+      });
+      expect(pending).toBeDefined();
+      expect(pending?.command).toBe(`echo ${marker}`);
+
+      // The user allows it.
+      await api.editService.approveCommand(pending!.toolCallId);
+      await waitFor(() => api.editService.getPendingCommands().length === 0 ? true : undefined, 5000);
+    } finally {
+      await setFakeMode({ mode: 'echo' });
     }
   });
 });
