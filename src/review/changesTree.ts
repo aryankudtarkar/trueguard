@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { ChangeSet } from '../edits/store';
-import { toDisplayHunks, type Hunk } from '../edits/hunks';
+import type { Hunk } from '../edits/hunks';
 import type { EditService } from './editService';
 
 /**
@@ -155,12 +155,4 @@ function countsFor(path: string, service: EditService): string {
     return `+${added} -${removed}`;
   }
   return '';
-}
-
-/** Display hunks (with context) for the diff view. */
-export function displayHunks(changeSet: ChangeSet, path: string): ReturnType<typeof toDisplayHunks> {
-  const file = changeSet.files.find((f) => f.path === path);
-  if (!file) { return []; }
-  const base = file.hunks.length > 0 ? '' : '';
-  return toDisplayHunks(base, file.hunks);
 }

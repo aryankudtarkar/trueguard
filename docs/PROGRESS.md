@@ -58,4 +58,20 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 | 3.8 Randomized + real TextDocument tests | done | dbd0119 | CRLF, BOM, unicode, dirty buffer, undo, corruption |
 | Phase 3 audit | **PASS** | — | docs/audits/phase-3.md; 7 findings fixed, edits/ coverage 96 % |
 
-## Next: Phase 4 — approval gate and review experience
+## Phase 4 (approval gate and review experience)
+
+| Task | Status | Commit | Note |
+| --- | --- | --- | --- |
+| 4.1 propose_edit registered and gated for approval | done | 1fca3a9 | `require_approval_for_tools: ['propose_edit']` |
+| 4.2 Approval listener builds the review from the live file state | done | 1fca3a9 | proposals are built from the current buffer/disk |
+| 4.3 DecisionStore keyed by tool_call_id | done | 1fca3a9 | the decision travels as a `user.tool_approval` turn |
+| 4.4 Changes tree view (groups, files, hunk checkboxes, actions, empty state) | done | 1fca3a9 | |
+| 4.5 Diff content provider + native diff at the chosen hunk | done | 1fca3a9 | warns when the file changed since the proposal |
+| 4.6 Commands, menus, keybindings, status bar pending count | done | 1fca3a9 | 9 commands, 4 keybindings |
+| 4.7 Chat change cards with status chips and receipt row | done | 1fca3a9 | Awaiting review / Verified / Conflict / Rejected |
+| 4.8 Conflict, stop-while-pending, invalid-edit flows | done | 1fca3a9 | invalid edits are denied with a reason, never shown |
+| 4.9 End-to-end runs (accept all, partial, reject, conflict, cancel) | done | 1fca3a9 | 10 service tests + the live gate |
+| Phase 4 exit gate: agent proposes, user accepts 1 of 2 hunks, disk has exactly that | done | 1fca3a9 | live, real TrueForge + real VS Code |
+| Phase 4 audit | **PASS** | — | docs/audits/phase-4.md; 4 findings fixed, tag phase-4-audited |
+
+## Next: Phase 5 — command execution and context hygiene
