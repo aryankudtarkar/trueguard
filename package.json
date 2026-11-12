@@ -315,6 +315,16 @@
           "type": "integer",
           "default": 16384,
           "description": "Maximum size of the workspace context attached to a message, in bytes."
+        },
+        "forgeguard.failover.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Continue a turn on the next model when the provider fails (rate limit, server error, timeout)."
+        },
+        "forgeguard.failover.breakerCooldownSec": {
+          "type": "integer",
+          "default": 60,
+          "description": "How long a failed model stays out before it is tried again."
         }
       }
     },

@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { resolveCommandCwd } from './exec/cwd';
+import { SessionLog } from './util/sessionLog';
+import * as path from 'node:path';
 import { EditorMcpServer, MCP_SERVER_NAME } from './mcp/editorServer';
 import { FaultHook } from './edits/faults';
 import { ChangeStore } from './edits/store';
@@ -30,6 +32,8 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
 
   const server = new ServerManager(context);
   const editor = new EditorMcpServer();
+  // The redacted per-session event log (FR-8).
+  const sessionLog = new SessionLog(path.join(context.globalStorageUri.fsPath, 'sessions'));
   const sessions = new SessionManager(server, context, () => {
     const ep = editor.getEndpoint();
     if (!ep) { return []; }
@@ -42,7 +46,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
         preload: true,
       },
     ];
-  });
+  }, sessionLog);
 
   // The review pipeline: proposals → hunk-level review → verified writes.
   const changes = new ChangeStore();
@@ -191,7 +195,16 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     }),
   );
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.showSessionLog', () => logger().show()),
+    vscode.commands.registerCommand('forgeguard.showSessionLog', async () => {
+      logger().show();
+      const file = await sessionLog.latestFile();
+      if (!file) {
+        void vscode.window.showInformationMessage('No session log yet. Send a message first.');
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+      await vscode.window.showTextDocument(doc, { preview: false });
+    }),
   );
 
   // Focus helpers contributed via views/item commands
@@ -273,6 +286,8 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     statusBar.setPending(hunks);
     chatProvider.setPendingReviews(hunks);
     changesTree.refresh();
+    // Show the files that changed since the proposal (before the user acts).
+    void changesTree.refreshStaleness();
   }
 
   registerDisposable(

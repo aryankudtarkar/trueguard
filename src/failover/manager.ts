@@ -30,6 +30,10 @@ export interface FailoverOptions {
   now?: () => number;
   /** Injected sleep, so the tests do not wait. */
   sleep?: (ms: number) => Promise<void>;
+  /** Failover off: a provider failure ends the turn. */
+  enabled?: boolean;
+  /** How long a failed model stays out (default 60 s). */
+  cooldownMs?: number;
 }
 
 export interface FailoverDecision {
@@ -48,6 +52,10 @@ export interface FailoverDecision {
 export class FailoverManager {
   private readonly now: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
+  /** Failover off: a provider failure ends the turn. */
+  private enabled: boolean;
+  /** How long a failed model stays out. */
+  private cooldownMs: number;
   /** Model id → when it becomes healthy again (0 = healthy). */
   private readonly unhealthyUntil = new Map<string, number>();
   /** Model id → attempts in the current turn. */
@@ -60,6 +68,19 @@ export class FailoverManager {
   ) {
     this.now = options.now ?? (() => Date.now());
     this.sleep = options.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
+    this.enabled = options.enabled ?? true;
+    this.cooldownMs = options.cooldownMs ?? BREAKER_COOLDOWN_MS;
+  }
+
+  /** Is failover enabled? (the user can turn it off) */
+  get isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  /** Apply the user's failover settings at runtime. */
+  setPolicy(policy: { enabled?: boolean; cooldownMs?: number }): void {
+    if (policy.enabled !== undefined) { this.enabled = policy.enabled; }
+    if (policy.cooldownMs !== undefined) { this.cooldownMs = policy.cooldownMs; }
   }
 
   /** The models, in order. */
@@ -120,14 +141,14 @@ export class FailoverManager {
   async handleFailure(input: ErrorInput): Promise<FailoverDecision> {
     const classified = classifyError(input);
 
-    if (!shouldFailover(classified)) {
+    if (!this.enabled || !shouldFailover(classified)) {
       return { action: 'giveup', delayMs: 0, classified };
     }
 
     const current = this.active;
     if (current) {
       this.attempts.set(current.id, (this.attempts.get(current.id) ?? 0) + 1);
-      this.unhealthyUntil.set(current.id, this.now() + BREAKER_COOLDOWN_MS);
+      this.unhealthyUntil.set(current.id, this.now() + this.cooldownMs);
     }
 
     const next = this.nextModel();

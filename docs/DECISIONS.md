@@ -95,6 +95,54 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 - **Consequence:** the agent can always parse a tool result, and the marker
   tells it how to narrow the request.
 
+## 2026-11-12 — A failover continues the task; it never restarts it
+
+- **Context:** cline/cline#713 reports that Cline's retry *"doesn't continue
+  the task, but it starts again. So it generates an infinite loop and money
+  consuming."* Our Phase 6 implementation had the same shape: it re-sent the
+  original user message on the fallback model, which makes the model see the
+  request twice and start over.
+- **Choice:** a retry sends a **continuation** instead of the request:
+  *"The previous attempt failed: … Continue where you left off. Do not repeat
+  the work that already succeeded."* The tools that already returned a result
+  are named, and the idempotency guard (`src/util/idempotency.ts`) replays a
+  repeated call instead of executing it again.
+- **Consequence:** a failover costs the work already done, not the whole task.
+  The live failover gate proves the turn completes on the fallback model.
+
+## 2026-11-12 — The failover policy is a setting, not a constant
+
+- **Context:** cline/cline discussion #10465 notes that Cline's retry count is
+  a compile-time constant (`maxRetries: 3`) with no UI visibility and no
+  tunable backoff.
+- **Choice:** `forgeguard.failover.enabled` and
+  `forgeguard.failover.breakerCooldownSec` are contributed settings, and the
+  chat shows exactly one row per failover plus the model label on every agent
+  message.
+- **Consequence:** the user can see and tune the policy instead of guessing.
+
+## 2026-11-12 — A redacted per-session event log (FR-8)
+
+- **Context:** FR-8 asks for "a redacted JSON event log per session in
+  globalStorage, opened by ForgeGuard: Show Session Log". Neither Cline nor
+  Continue exposes an inspectable per-session event log (see
+  docs/COMPETITIVE.md).
+- **Choice:** every turn event is appended to
+  `globalStorage/sessions/<sessionId>.jsonl`. Keys that look like secrets
+  and bearer tokens inside free text are replaced with `[redacted]`. A log
+  that cannot be written never breaks a turn.
+- **Consequence:** when a demo goes sideways, the artefact that answers "what
+  did the agent actually see and do?" exists.
+
+## 2026-11-12 — A stale review is visible before it becomes a conflict
+
+- **Context:** continuedev/continue#12269 reports the agent's view of a file
+  drifting from the disk. We refuse such a write (the base-hash conflict
+  check), but the user only found out at apply time.
+- **Choice:** the Changes view marks a file that changed since the proposal
+  with a warning icon and "changed since the proposal".
+- **Consequence:** the desync is visible while the user is still deciding.
+
 ## 2026-11-12 — Amended phase order: the brief-driven anchors move up
 
 - **Context:** docs/brief.pdf (authoritative) makes two capabilities mandatory

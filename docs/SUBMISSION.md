@@ -38,6 +38,13 @@ runs the agent loop on TrueForge and owns everything the user sees:
 - Risky commands are **highlighted, not blocked**: the user keeps the last
   word.
 
+The comparison against Cline and Continue — with links to the public issues
+behind every claim — is in [docs/COMPETITIVE.md](docs/COMPETITIVE.md). The
+short version: the competitors retry the same model and let a failed task die
+or restart it; they rewrite whole files; and they report success without
+checking the disk. ForgeGuard continues on another model, reviews every hunk,
+and verifies every write.
+
 ## Screenshots
 
 | # | What it shows | Where to take it |

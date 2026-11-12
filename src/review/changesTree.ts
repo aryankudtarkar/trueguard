@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import type { ChangeSet } from '../edits/store';
 import type { Hunk } from '../edits/hunks';
+import { toEditableText } from '../edits/text';
+import { contentHash } from '../util/hash';
+import * as fs from 'node:fs/promises';
 import type { EditService } from './editService';
 
 /**
@@ -33,6 +36,8 @@ export interface ChangesTreeCallbacks {
 export class ChangesTreeProvider implements vscode.TreeDataProvider<ChangeTreeItem> {
   private readonly emitter = new vscode.EventEmitter<ChangeTreeItem | undefined>();
   readonly onDidChangeTreeData = this.emitter.event;
+  /** Files that changed since the proposal was made. */
+  private readonly stale = new Set<string>();
 
   constructor(
     private readonly service: EditService,
@@ -42,6 +47,29 @@ export class ChangesTreeProvider implements vscode.TreeDataProvider<ChangeTreeIt
 
   refresh(): void {
     this.emitter.fire(undefined);
+  }
+
+  /**
+   * Mark the files that changed since the proposal. The user sees it BEFORE
+   * applying, instead of discovering it as a conflict afterwards
+   * (continuedev/continue#12269 reports the same desync).
+   */
+  async refreshStaleness(): Promise<void> {
+    this.stale.clear();
+    for (const changeSet of this.service.changeStore.pending()) {
+      for (const file of changeSet.files) {
+        const current = await readCurrentText(file.path);
+        if (current === undefined) { continue; }
+        const hash = contentHash(toEditableText(current).text);
+        if (hash !== file.baseHash) { this.stale.add(file.path); }
+      }
+    }
+    this.refresh();
+  }
+
+  /** Is this file stale? */
+  isStale(path: string): boolean {
+    return this.stale.has(path);
   }
 
   getTreeItem(element: ChangeTreeItem): vscode.TreeItem {
@@ -54,10 +82,15 @@ export class ChangesTreeProvider implements vscode.TreeDataProvider<ChangeTreeIt
     if (element.kind === 'file') {
       const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);
       item.contextValue = 'forgeguard.file';
-      item.iconPath = new vscode.ThemeIcon('file');
-      item.description = countsFor(element.path, this.service);
+      const stale = this.stale.has(element.path);
+      item.iconPath = new vscode.ThemeIcon(stale ? 'warning' : 'file');
+      item.description = stale
+        ? `${countsFor(element.path, this.service)} · changed since the proposal`
+        : countsFor(element.path, this.service);
       item.resourceUri = vscode.Uri.file(element.path);
-      item.tooltip = element.path;
+      item.tooltip = stale
+        ? 'This file changed after the agent read it. Review again before applying.'
+        : element.path;
       return item;
     }
     const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
@@ -128,6 +161,17 @@ export class ChangesTreeProvider implements vscode.TreeDataProvider<ChangeTreeIt
 
   dispose(): void {
     this.emitter.dispose();
+  }
+}
+
+/** The current text of a file (the buffer if open, otherwise the disk). */
+async function readCurrentText(path: string): Promise<string | undefined> {
+  const open = vscode.workspace.textDocuments.find((d) => d.uri.scheme === 'file' && d.uri.fsPath === path);
+  if (open) { return open.getText(); }
+  try {
+    return await fs.readFile(path, 'utf8');
+  } catch {
+    return undefined;
   }
 }
 

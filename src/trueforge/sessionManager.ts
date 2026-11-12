@@ -9,11 +9,31 @@ import {
 } from './schemas';
 import { logger } from '../util/logger';
 import { FailoverManager, type ModelProfile } from '../failover/manager';
+import { SessionLog } from '../util/sessionLog';
 
 export interface StoredSession {
   id: string;
   title: string;
   createdAt: string;
+}
+
+/**
+ * The message that continues a failed turn on another model.
+ *
+ * It continues, it does not repeat: re-sending the original request would
+ * make the model start the task over (cline/cline#713 reports exactly this
+ * complaint). The tools that already ran are named, and the idempotency
+ * guard makes sure they cannot run twice.
+ */
+export function continuationMessage(error: string, completedTools: readonly string[] = []): string {
+  const lines = [
+    `The previous attempt failed: ${error}.`,
+    'Continue where you left off. Do not repeat the work that already succeeded.',
+  ];
+  if (completedTools.length) {
+    lines.push(`These tools already ran successfully: ${completedTools.join(', ')}. Do not run them again.`);
+  }
+  return lines.join(' ');
 }
 
 /** A tool call the model made, with the arguments it sent. */
@@ -55,16 +75,23 @@ export class SessionManager implements vscode.Disposable {
   /** Tool calls of the current turn, by id (the approval correlation key). */
   private readonly toolCalls = new Map<string, RecordedToolCall>();
   private readonly toolCallBuffer = new ToolCallBuffer();
-  private readonly failover = new FailoverManager([]);
+  private readonly failover = new FailoverManager([], {
+    enabled: true,
+    cooldownMs: 60_000,
+  });
   private readonly failoverEmitter = new vscode.EventEmitter<FailoverNotice>();
   readonly onFailover = this.failoverEmitter.event;
   /** The error of the last turn, if it failed. */
   private turnError: string | undefined;
+  /** The tools that already returned a result in this turn. */
+  private readonly completedTools = new Set<string>();
 
   constructor(
     private readonly server: ServerManager,
     private readonly context: vscode.ExtensionContext,
     private readonly mcpServers?: () => Array<Record<string, unknown>>,
+    /** The redacted per-session event log (FR-8). */
+    private readonly sessionLog?: SessionLog,
   ) {}
 
   private stored(): StoredSession[] {
@@ -166,21 +193,29 @@ export class SessionManager implements vscode.Disposable {
     this.lastModelName = modelName;
     this.toolCalls.clear();
     this.toolCallBuffer.drain();
+    this.completedTools.clear();
     this.failover.setModels(this.configuredModels());
+    this.applyFailoverSettings();
     this.failover.onTurnStart();
     let cancelled = false;
     try {
       const sessionId = await this.ensureSession(modelName);
       let attemptModel = modelName;
+      // The first attempt sends the user's request. A retry sends a
+      // CONTINUATION, never the request again: re-sending it would make the
+      // model start the task over (this is exactly the trap Cline users
+      // report in cline/cline#713).
+      let attemptInput = input;
       for (;;) {
         this.turnError = undefined;
-        await this.server.client.sendTurn(sessionId, input, {
+        await this.server.client.sendTurn(sessionId, attemptInput, {
           onEvent: (raw) => {
             const event = streamingEventSchema.parse(raw); // already validated; belt-and-braces
             if (event.type === 'turn.done' && event.state.status === 'error') {
               this.turnError = event.state.message ?? 'the provider failed';
             }
             this.recordEvent(event);
+            void this.logEvent(sessionId, event);
             onEvent(event);
           },
           onEnd: () => undefined,
@@ -206,6 +241,7 @@ export class SessionManager implements vscode.Disposable {
           ...(from ? { from } : {}),
         });
         attemptModel = decision.model.ref;
+        attemptInput = [{ type: 'user.message', content: this.continuationMessage(this.turnError) }];
       }
     } catch (e) {
       if (controller.signal.aborted) {
@@ -223,10 +259,39 @@ export class SessionManager implements vscode.Disposable {
     }
   }
 
+  /**
+   * The message that continues a failed turn on another model.
+   *
+   * It continues, it does not repeat: the tools that already ran are named so
+   * the model does not do them again (and the idempotency guard makes sure
+   * they cannot run twice).
+   */
+  private continuationMessage(error: string): string {
+    return continuationMessage(error, [...this.completedTools]);
+  }
+
+
+  /** Append one event to the session log (never blocks the turn). */
+  private async logEvent(sessionId: string, event: StreamingEvent): Promise<void> {
+    if (!this.sessionLog) { return; }
+    // Only the interesting events are logged: the deltas would drown it.
+    if (event.type === 'model.message.delta') { return; }
+    await this.sessionLog.append(sessionId, event.type, event);
+  }
+
   /** The configured model profiles (forgeguard.models). */
   configuredModels(): ModelProfile[] {
     const models = vscode.workspace.getConfiguration('forgeguard').get<ModelProfile[]>('models', []);
     return models.filter((m) => typeof m?.ref === 'string' && m.ref.length > 0);
+  }
+
+  /** The failover settings (visible and tunable, unlike a hard-coded retry). */
+  private applyFailoverSettings(): void {
+    const cfg = vscode.workspace.getConfiguration('forgeguard.failover');
+    this.failover.setPolicy({
+      enabled: cfg.get<boolean>('enabled', true),
+      cooldownMs: Math.max(5, cfg.get<number>('breakerCooldownSec', 60)) * 1000,
+    });
   }
 
   /** Record tool calls and surface the approval gate. */
@@ -245,6 +310,11 @@ export class SessionManager implements vscode.Disposable {
       // The turn is over: whatever is left in the buffer is what the model
       // asked for (a tool call without arguments, for instance).
       this.emitToolCalls(this.toolCallBuffer.drain());
+      return;
+    }
+    if (event.type === 'tool.response') {
+      const call = this.toolCalls.get(event.tool_call_id ?? '');
+      if (call) { this.completedTools.add(call.name); }
       return;
     }
     if (event.type === 'tool.approval_required') {
