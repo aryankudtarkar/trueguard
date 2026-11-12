@@ -74,4 +74,16 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 | Phase 4 exit gate: agent proposes, user accepts 1 of 2 hunks, disk has exactly that | done | 1fca3a9 | live, real TrueForge + real VS Code |
 | Phase 4 audit | **PASS** | — | docs/audits/phase-4.md; 4 findings fixed, tag phase-4-audited |
 
-## Next: Phase 5 — command execution and context hygiene
+## Phase 5 (command execution and context hygiene)
+
+| Task | Status | Commit | Note |
+| --- | --- | --- | --- |
+| 5.1 run_command with approval, verbatim card, risky-pattern highlight | done | b7a6c87 | nothing runs without the user's approval |
+| 5.2 Process runner (shell, cwd guard, timeout, output channel, 16 KB tail, tree kill) | done | b7a6c87 | POSIX process group / Windows taskkill |
+| 5.3 Every tool result capped (FR-9) | done | f35985c | `capJson` keeps the payload valid JSON |
+| 5.4 Chat rendering: exit code and duration | done | b7a6c87 | command card |
+| 5.5 Tests: timeout, cancel, large output, non-zero exit, denied approval, cwd escape | done | b7a6c87 | 33 new tests |
+| Phase 5 exit gate: the agent runs a command only after approval | done | b7a6c87 | live, real TrueForge + real VS Code |
+| Phase 5 audit | **PASS** | — | docs/audits/phase-5.md; 5 findings fixed, tag phase-5-audited |
+
+## Next: Phase 6 — failover (G3)
