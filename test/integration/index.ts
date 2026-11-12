@@ -2,6 +2,7 @@
 // Importing the suite files registers describe/it with the harness.
 import { runAll } from './harness';
 import './extension.test';
+import './mcp.test';
 
 export async function run(): Promise<void> {
   // The extension activates automatically (activationEvents); give it a beat.

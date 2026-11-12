@@ -10,6 +10,9 @@ export default defineConfig({
   test: {
     include: ['test/unit/**/*.test.ts'],
     environment: 'node',
+    // The live exit-gate tests share external state (the fake OpenAI provider's
+    // mode and the real TrueForge server), so files must not run in parallel.
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

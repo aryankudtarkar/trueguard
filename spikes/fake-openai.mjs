@@ -5,13 +5,17 @@ import { createServer } from 'node:http';
 
 const port = Number(process.env.FAKE_LLM_PORT ?? 8799);
 let mode = 'echo'; // echo | call-tool | fail429 | fail401 | fail500 | stall
+// Tool the scripted model calls in 'call-tool' mode (overridable per run).
+let callTool = { name: 'echo', args: '{"text":"hello-approval"}' };
 
 const server = createServer(async (req, res) => {
   if (req.method === 'POST' && req.url === '/set-mode') {
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => {
-      mode = JSON.parse(body).mode ?? 'echo';
+      const parsed = JSON.parse(body);
+      mode = parsed.mode ?? 'echo';
+      if (parsed.tool) { callTool = { name: parsed.tool, args: parsed.args ?? '{}' }; }
       res.writeHead(200); res.end('"ok"');
     });
     return;
@@ -49,8 +53,8 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
     const chunk = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
     if (mode === 'call-tool' && !hasToolResult) {
-      chunk({ id: 'fake-2', object: 'chat.completion.chunk', created: 0, model: 'fake/test', choices: [{ index: 0, delta: { role: 'assistant', content: 'I will call echo now.' } }] });
-      chunk({ id: 'fake-2', object: 'chat.completion.chunk', created: 0, model: 'fake/test', choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: 'call_fake_1', type: 'function', function: { name: 'echo', arguments: '{"text":"hello-approval"}' } }] } }] });
+      chunk({ id: 'fake-2', object: 'chat.completion.chunk', created: 0, model: 'fake/test', choices: [{ index: 0, delta: { role: 'assistant', content: 'I will call the tool now.' } }] });
+      chunk({ id: 'fake-2', object: 'chat.completion.chunk', created: 0, model: 'fake/test', choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: 'call_fake_1', type: 'function', function: { name: callTool.name, arguments: callTool.args } }] } }] });
       chunk({ id: 'fake-2', object: 'chat.completion.chunk', created: 0, model: 'fake/test', choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }] });
       res.write('data: [DONE]\n\n');
       res.end();

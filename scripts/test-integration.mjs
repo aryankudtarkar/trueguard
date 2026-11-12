@@ -13,7 +13,7 @@ async function main() {
     extensionDevelopmentPath,
     extensionTestsPath,
     vscodeExecutablePath,
-    launchArgs: ['--disable-extensions'],
+    launchArgs: ['--disable-extensions', resolve(process.cwd())],
   });
 }
 
