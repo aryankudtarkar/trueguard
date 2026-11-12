@@ -44,4 +44,18 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 | fix: list_files honours .gitignore (findFiles does not) | done | ec212e2 | git-backed listing, node_modules never leaks |
 | Phase 2 audit | **PASS** | — | docs/audits/phase-2.md; 13 findings fixed, tag phase-2-audited |
 
-## Next: Phase 3 — edit engine (headless, no UI)
+## Phase 3 (edit engine, headless)
+
+| Task | Status | Commit | Note |
+| --- | --- | --- | --- |
+| 3.1 Text normalization (EOL, BOM, trailing newline, LF hash) | done | cc2733b | exact round-trip for LF/CRLF/CR/BOM |
+| 3.2 Edit matcher (unique match, structured errors, overlap) | done | cc2733b | nearest candidate line numbers |
+| 3.3 Hunk engine (zero-context diff, stable ids, applyHunks) | done | cc2733b | randomized properties prove apply-all == proposed |
+| 3.4 ChangeStore state machine | done | cc2733b | illegal transitions throw |
+| 3.5 Proposal builder + VS Code bridge (one WorkspaceEdit, mutex, conflict check) | done | dbd0119 | one undo step per file |
+| 3.6 Verifier (buffer + disk, rollback, truthful result) | done | cc2733b | no path reports success unverified |
+| 3.7 Dev fault hook (corrupt the next write) | done | dbd0119 | command + `forgeguard.dev.enableFaultInjection` |
+| 3.8 Randomized + real TextDocument tests | done | dbd0119 | CRLF, BOM, unicode, dirty buffer, undo, corruption |
+| Phase 3 audit | **PASS** | — | docs/audits/phase-3.md; 7 findings fixed, edits/ coverage 96 % |
+
+## Next: Phase 4 — approval gate and review experience

@@ -100,29 +100,32 @@ export async function applyChanges(request: ApplyRequest, options: ApplierOption
   }
 
   const anyAccepted = results.some((r) => r.hunksAccepted > 0);
+  const proposed = results.reduce((sum, r) => sum + r.hunksProposed, 0);
+  const accepted = results.reduce((sum, r) => sum + r.hunksAccepted, 0);
   let status: ApplyStatus;
   let note: string;
-  if (conflict) {
-    status = 'conflict';
-    note = 'A file changed after the agent proposed the edit. Nothing was written to it.';
+
+  if (verificationFailed && appliedCount > 0) {
+    status = 'partially_applied';
+    note = `Applied ${accepted} of ${proposed} changes. One file did not match what you approved, so it was restored.`;
   } else if (verificationFailed) {
     status = 'verification_failed';
     note = 'The file did not match what you approved, so it was restored. Nothing was lost.';
+  } else if (conflict && appliedCount > 0) {
+    status = 'partially_applied';
+    note = `Applied ${accepted} of ${proposed} changes. One file changed after the proposal and was left alone.`;
+  } else if (conflict) {
+    status = 'conflict';
+    note = 'A file changed after the agent proposed the edit. Nothing was written to it.';
   } else if (!anyAccepted) {
     status = 'rejected';
     note = 'No changes were accepted, so nothing was written.';
   } else if (appliedCount === results.length) {
     status = 'applied';
-    const total = results.reduce((sum, r) => sum + r.hunksAccepted, 0);
-    const proposed = results.reduce((sum, r) => sum + r.hunksProposed, 0);
-    note = total === proposed
-      ? `Applied ${total} of ${proposed} changes. Verified against disk.`
-      : `Applied ${total} of ${proposed} changes. Verified against disk.`;
+    note = `Applied ${accepted} of ${proposed} changes. Verified against disk.`;
   } else {
     status = 'partially_applied';
-    const total = results.reduce((sum, r) => sum + r.hunksAccepted, 0);
-    const proposed = results.reduce((sum, r) => sum + r.hunksProposed, 0);
-    note = `Applied ${total} of ${proposed} changes. Verified against disk.`;
+    note = `Applied ${accepted} of ${proposed} changes. Verified against disk.`;
   }
 
   return { status, files: results, note };
@@ -183,7 +186,24 @@ async function applyFile(
 
     // 4. Write (one WorkspaceEdit → one undo step).
     const toWrite = corruptWrite ? `${expected}<!-- corrupt -->` : expected;
-    await bridge.writeText(file.path, toWrite);
+    try {
+      await bridge.writeText(file.path, toWrite);
+    } catch (e) {
+      // The write failed: restore the snapshot (best effort) and report it.
+      const restored = await tryRestore(bridge, file.path, snapshot);
+      return {
+        status: 'verification_failed',
+        result: {
+          path: file.path,
+          hunksProposed: file.hunks.length,
+          hunksAccepted: 0,
+          verified: false,
+          reason: restored
+            ? `the write failed (${message(e)}) and the file was restored`
+            : `the write failed (${message(e)}) and the rollback FAILED — check the file`,
+        },
+      };
+    }
 
     // 5. Verify: buffer first, then disk.
     const bufferText = await bridge.readText(file.path);
@@ -208,7 +228,7 @@ async function applyFile(
     }
 
     // 6. Verification failed: roll back and say so.
-    await bridge.restore(file.path, snapshot);
+    const restored = await tryRestore(bridge, file.path, snapshot);
     return {
       status: 'verification_failed',
       result: {
@@ -216,7 +236,11 @@ async function applyFile(
         hunksProposed: file.hunks.length,
         hunksAccepted: 0,
         verified: false,
-        reason: bufferOk ? 'the file on disk did not match' : 'the editor buffer did not match',
+        reason: restored
+          ? bufferOk
+            ? 'the file on disk did not match; the file was restored'
+            : 'the editor buffer did not match; the file was restored'
+          : 'the file did not match AND the rollback failed — check the file',
       },
     };
   };
@@ -230,6 +254,20 @@ async function applyFile(
 /** Normalization used when comparing texts: EOL-agnostic, BOM-agnostic. */
 function normalize(text: string): string {
   return text.replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+/** Restore a snapshot; returns false when the rollback itself failed. */
+async function tryRestore(bridge: EditorBridge, path: string, snapshot: string): Promise<boolean> {
+  try {
+    await bridge.restore(path, snapshot);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function message(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
 }
 
 /** The profile of a file's current text (used by callers that pre-compute). */

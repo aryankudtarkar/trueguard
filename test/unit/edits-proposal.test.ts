@@ -119,8 +119,20 @@ describe('proposal builder', () => {
     expect(res.ok).toBe(true);
   });
 
-  it('reports every invalid change, not just the first', async () => {
+  it('refuses two changes for the same file', async () => {
     const res = await buildProposal(
+      [
+        { path: 'src/other.ts', kind: 'modify', edits: [{ oldText: 'one', newText: '1' }] },
+        { path: 'src/other.ts', kind: 'modify', edits: [{ oldText: 'two', newText: '2' }] },
+      ],
+      ctx,
+    );
+    expect(res.ok).toBe(false);
+    expect(res.errors[0]?.code).toBe('invalid');
+    expect(res.errors[0]?.message).toContain('twice');
+  });
+
+  it('reports every invalid change, not just the first', async () => {    const res = await buildProposal(
       [
         { path: 'src/nope.ts', kind: 'modify', edits: [{ oldText: 'a', newText: 'b' }] },
         { path: 'src/other.ts', kind: 'create', content: 'x' },

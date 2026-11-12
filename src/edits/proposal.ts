@@ -79,8 +79,21 @@ export async function buildProposal(
 ): Promise<ProposalResult> {
   const files: ProposalFile[] = [];
   const errors: ProposalError[] = [];
+  const seenPaths = new Set<string>();
 
   for (const change of changes) {
+    // Two changes for the same file would race each other's base hash and
+    // produce a confusing "the file changed" conflict later.
+    if (seenPaths.has(change.path)) {
+      errors.push({
+        code: 'invalid',
+        path: change.path,
+        message: `${change.path} appears twice in the same proposal. Combine the edits into one change.`,
+      });
+      continue;
+    }
+    seenPaths.add(change.path);
+
     const exists = await ctx.exists(change.path);
     const current = exists ? await ctx.readFile(change.path) : undefined;
 

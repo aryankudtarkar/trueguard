@@ -95,6 +95,40 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 - **Consequence:** the agent can always parse a tool result, and the marker
   tells it how to narrow the request.
 
+## 2026-11-12 — Phase 3: the canonical hash ignores the BOM
+
+- **Context:** the same file read from disk and from an editor buffer can
+  differ by a UTF-8 BOM. With the BOM included in the hash, every proposal on
+  a BOM file looked like a conflict and was refused.
+- **Choice:** `contentHash` normalizes EOL **and** the BOM. The hash
+  identifies the text, not the encoding.
+- **Consequence:** the editor owns the encoding: the bridge writes plain text
+  and VS Code re-adds the BOM when saving. The applier compares
+  BOM-insensitively.
+
+## 2026-11-12 — Phase 3: hunks are computed on LF-normalized text
+
+- **Context:** a CRLF file and an LF file must produce the same hunks, or the
+  line numbers of a proposal would depend on the file's line endings.
+- **Choice:** the proposal is computed on LF-normalized text (BOM stripped);
+  the file's EOL style, BOM and trailing-newline convention are captured in a
+  profile and restored when the result is written.
+- **Consequence:** the trailing newline is represented as an explicit line, so
+  a proposal that adds or removes it still reproduces the proposed text
+  exactly (proven by the randomized property test).
+
+## 2026-11-12 — Phase 3: a change set is applied in one operation
+
+- **Context:** hunks carry line numbers, so applying a subset and then
+  re-applying the rest with the original coordinates would corrupt the file.
+- **Choice:** the user accepts a subset and the extension applies exactly that
+  subset in one operation, against the base text the proposal was computed
+  from. A second, later change to the same file is refused by the base-hash
+  check (conflict) and must be re-proposed.
+- **Consequence:** the "apply a subset, then the rest" flow is intentionally
+  not supported; the Changes view always applies the current selection in one
+  step.
+
 ## 2026-11-12 — Phase 2: read-only tools are attached with no approval gate
 
 - **Context:** TrueForge's default `require_approval_for_tools` is

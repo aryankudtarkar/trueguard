@@ -162,8 +162,47 @@ describe('applier', () => {
     expect(result.files.length).toBe(2);
   });
 
-  it('keeps CRLF files in CRLF', async () => {
-    const crlf = 'line one\r\nline two\r\nline three\r\n';
+  it('restores the file when the write itself fails', async () => {
+    const files = { 'src/a.ts': { buffer: BASE, disk: BASE } };
+    const bridge = fakeBridge(files);
+    bridge.writeText = async () => { throw new Error('the file was deleted'); };
+    const result = await applyChanges({ files: [request()] }, { bridge });
+    expect(result.status).toBe('verification_failed');
+    expect(result.files[0]?.verified).toBe(false);
+    expect(result.files[0]?.reason).toContain('restored');
+  });
+
+  it('says so loudly when the rollback also fails', async () => {
+    const files = { 'src/a.ts': { buffer: BASE, disk: BASE } };
+    const bridge = fakeBridge(files);
+    bridge.writeText = async () => { throw new Error('boom'); };
+    bridge.restore = async () => { throw new Error('cannot restore'); };
+    const result = await applyChanges({ files: [request()] }, { bridge });
+    expect(result.status).toBe('verification_failed');
+    expect(result.files[0]?.reason).toContain('rollback FAILED');
+  });
+
+  it('reports a partial application when one file conflicts', async () => {
+    const files: Record<string, { buffer: string; disk: string }> = {
+      'src/a.ts': { buffer: BASE, disk: BASE },
+      'src/b.ts': { buffer: BASE, disk: BASE },
+    };
+    const bridge = fakeBridge(files);
+    const aHunks = computeHunks(BASE, BASE.replace('line two', 'line TWO'));
+    const bHunks = computeHunks(BASE, BASE.replace('line three', 'line THREE'));
+    const a: ApplyFileRequest = { path: 'src/a.ts', baseText: BASE, baseHash: contentHash(BASE), hunks: aHunks, acceptedIds: new Set(aHunks.map((h) => h.id)) };
+    const b: ApplyFileRequest = { path: 'src/b.ts', baseText: BASE, baseHash: contentHash(BASE), hunks: bHunks, acceptedIds: new Set(bHunks.map((h) => h.id)) };
+    // The second file changed after the proposal.
+    files['src/b.ts']!.buffer = 'someone else was here\n';
+    files['src/b.ts']!.disk = files['src/b.ts']!.buffer;
+    const result = await applyChanges({ files: [a, b] }, { bridge });
+    expect(result.status).toBe('partially_applied');
+    expect(result.files[0]?.verified).toBe(true);
+    expect(result.files[1]?.verified).toBe(false);
+    expect(result.note).toContain('left alone');
+  });
+
+  it('keeps CRLF files in CRLF', async () => {    const crlf = 'line one\r\nline two\r\nline three\r\n';
     const files = { 'src/a.ts': { buffer: crlf, disk: crlf } };
     const bridge = fakeBridge(files);
     // Hunks are always computed on the LF-normalized text.
