@@ -48,6 +48,9 @@ function renderMessages(): void {
       if (m.role === 'tool') {
         return renderToolRow(m);
       }
+      if (m.role === 'change') {
+        return renderChangeCard(m);
+      }
       const el = document.createElement('div');
       el.className = `msg ${m.role}${m.streaming ? ' streaming' : ''}`;
       if (m.role === 'user') {
@@ -64,6 +67,60 @@ function renderMessages(): void {
     }),
   );
   msgList.scrollTop = msgList.scrollHeight;
+}
+
+/** Change card: file, counts, status chip and a Review button (PRD 6.4). */
+function renderChangeCard(m: Message & { role: 'change' }): HTMLElement {
+  const change = m.change;
+  const el = document.createElement('div');
+  el.className = 'msg change';
+  const head = document.createElement('div');
+  head.className = 'changeHead';
+  const name = document.createElement('span');
+  name.className = 'changeName';
+  name.textContent = change?.path ?? m.text;
+  const counts = document.createElement('span');
+  counts.className = 'changeCounts';
+  counts.textContent = change ? `+${change.added} -${change.removed}` : '';
+  const chip = document.createElement('span');
+  chip.className = `chipStatus ${statusClass(change?.status ?? '')}`;
+  chip.textContent = change?.status ?? '';
+  head.append(name, counts, chip);
+  el.appendChild(head);
+
+  if (change?.note) {
+    const note = document.createElement('div');
+    note.className = 'secondary changeNote';
+    note.textContent = change.note;
+    el.appendChild(note);
+  }
+
+  if (change && change.status === 'Awaiting review') {
+    const review = document.createElement('button');
+    review.className = 'pill';
+    review.textContent = 'Review';
+    review.setAttribute('aria-label', `Review the changes to ${change.path}`);
+    review.addEventListener('click', () => {
+      void vscode.postMessage({ type: 'openReview' });
+    });
+    el.appendChild(review);
+  }
+  return el;
+}
+
+/** CSS class for a status chip. */
+function statusClass(status: string): string {
+  switch (status) {
+    case 'Verified':
+      return 'ok';
+    case 'Conflict':
+    case 'Failed check':
+      return 'bad';
+    case 'Rejected':
+      return 'muted';
+    default:
+      return 'pending';
+  }
 }
 
 /** Collapsed tool-activity row with expandable details. */

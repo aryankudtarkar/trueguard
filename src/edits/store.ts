@@ -39,6 +39,8 @@ export interface ChangeSet {
   state: ChangeState;
   /** Tool call that proposed this change set (correlation key). */
   toolCallId: string | undefined;
+  /** Thread the approval decision must be sent to. */
+  threadId: string | undefined;
   files: FileChange[];
   createdAt: number;
   /** Free-form note shown in the receipt. */
@@ -96,7 +98,7 @@ export class ChangeStore {
     return `c${hash.digest('hex').slice(0, 12)}`;
   }
 
-  create(files: readonly FileChange[], toolCallId?: string): ChangeSet {
+  create(files: readonly FileChange[], toolCallId?: string, threadId?: string): ChangeSet {
     const id = ChangeStore.idFor(toolCallId, files);
     const existing = this.sets.get(id);
     if (existing) { return existing; }
@@ -104,6 +106,7 @@ export class ChangeStore {
       id,
       state: 'proposed',
       toolCallId,
+      threadId,
       files: files.map((f) => ({ ...f, accepted: new Set(f.accepted) })),
       createdAt: Date.now(),
       note: '',

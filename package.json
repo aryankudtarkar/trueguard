@@ -47,6 +47,10 @@
       {
         "view": "forgeguard.chatView",
         "contents": "ForgeGuard puts a careful coding agent here. Start TrueForge to begin.\n[Start TrueForge](command:forgeguard.startTrueForge)\nNothing is written to your files without your review."
+      },
+      {
+        "view": "forgeguard.changesView",
+        "contents": "No changes waiting.\nWhen the agent proposes an edit, it appears here for review."
       }
     ],
     "commands": [
@@ -86,6 +90,36 @@
         "category": "ForgeGuard"
       },
       {
+        "command": "forgeguard.acceptHunk",
+        "title": "ForgeGuard: Accept Hunk",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.rejectHunk",
+        "title": "ForgeGuard: Reject Hunk",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.acceptAll",
+        "title": "ForgeGuard: Accept All",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.rejectAll",
+        "title": "ForgeGuard: Reject All",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.applyChanges",
+        "title": "ForgeGuard: Apply Selected Changes",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.review.openDiff",
+        "title": "ForgeGuard: Open Diff",
+        "category": "ForgeGuard"
+      },
+      {
         "command": "forgeguard.dev.corruptNextWrite",
         "title": "ForgeGuard: Dev: Corrupt Next Write",
         "category": "ForgeGuard"
@@ -101,8 +135,69 @@
         "command": "forgeguard.stopTurn",
         "key": "ctrl+shift+alt+s",
         "mac": "cmd+shift+alt+s"
+      },
+      {
+        "command": "forgeguard.acceptHunk",
+        "key": "ctrl+shift+alt+a",
+        "mac": "cmd+shift+alt+a"
+      },
+      {
+        "command": "forgeguard.rejectHunk",
+        "key": "ctrl+shift+alt+r",
+        "mac": "cmd+shift+alt+r"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "forgeguard.acceptAll",
+          "when": "view == forgeguard.changesView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "forgeguard.rejectAll",
+          "when": "view == forgeguard.changesView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "forgeguard.applyChanges",
+          "when": "view == forgeguard.changesView",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "forgeguard.acceptHunk",
+          "when": "view == forgeguard.changesView && viewItem == forgeguard.hunk",
+          "group": "inline@1"
+        },
+        {
+          "command": "forgeguard.rejectHunk",
+          "when": "view == forgeguard.changesView && viewItem == forgeguard.hunk",
+          "group": "inline@2"
+        },
+        {
+          "command": "forgeguard.acceptHunk",
+          "when": "view == forgeguard.changesView && viewItem == forgeguard.file",
+          "group": "inline@1"
+        },
+        {
+          "command": "forgeguard.rejectHunk",
+          "when": "view == forgeguard.changesView && viewItem == forgeguard.file",
+          "group": "inline@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "forgeguard.review.openDiff",
+          "when": "false"
+        },
+        {
+          "command": "forgeguard.dev.corruptNextWrite",
+          "when": "false"
+        }
+      ]
+    },
     "configuration": {
       "title": "ForgeGuard",
       "properties": {

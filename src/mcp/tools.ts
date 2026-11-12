@@ -111,7 +111,7 @@ export interface ToolRegistrar {
   registerTool(
     name: string,
     def: { description: string; inputSchema: Record<string, z.ZodType> },
-    handler: (args: unknown) => Promise<ToolResult>,
+    handler: (args: unknown, extra?: { requestId?: string | number }) => Promise<ToolResult>,
   ): void;
 }
 

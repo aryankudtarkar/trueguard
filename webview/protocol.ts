@@ -10,7 +10,7 @@ export interface ContextChip {
 
 export interface Message {
   readonly id: string;
-  readonly role: 'user' | 'agent' | 'system' | 'tool';
+  readonly role: 'user' | 'agent' | 'system' | 'tool' | 'change';
   /** For user/system: plain text. For agent: markdown to render sanitized. For tool: name. */
   readonly text: string;
   readonly streaming?: boolean;
@@ -20,6 +20,14 @@ export interface Message {
   readonly toolArgs?: string;
   readonly toolResult?: string;
   readonly expanded?: boolean;
+  /** Change cards: the file, the counts and the status chip. */
+  readonly change?: {
+    readonly path: string;
+    readonly added: number;
+    readonly removed: number;
+    readonly status: string;
+    readonly note?: string;
+  };
 }
 
 export type WebviewToHostMessage =
@@ -29,7 +37,8 @@ export type WebviewToHostMessage =
   | { readonly type: 'newChat' }
   | { readonly type: 'updateChip'; readonly chip: ContextChip | null }
   | { readonly type: 'copyText'; readonly text: string }
-  | { readonly type: 'switchModel' };
+  | { readonly type: 'switchModel' }
+  | { readonly type: 'openReview' };
 
 export type HostToWebviewMessage =
   | { readonly type: 'state'; readonly serverState: string; readonly working: boolean; readonly pendingReviews: number }

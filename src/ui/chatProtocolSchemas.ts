@@ -25,6 +25,7 @@ export const webviewToHostMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('copyText'), text: z.string().max(32_000) }),
   z.object({ type: z.literal('switchModel') }),
   z.object({ type: z.literal('toggleTool'), messageId: z.string().min(1) }),
+  z.object({ type: z.literal('openReview') }),
 ]);
 
 export type WebviewToHostParsed = z.infer<typeof webviewToHostMessageSchema>;

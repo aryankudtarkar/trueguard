@@ -1,13 +1,27 @@
 import * as vscode from 'vscode';
 import { EditorMcpServer, MCP_SERVER_NAME } from './mcp/editorServer';
 import { FaultHook } from './edits/faults';
+import { ChangeStore } from './edits/store';
+import { vscodeBridge, vscodeProposalContext } from './edits/vscodeBridge';
+import { DecisionStore } from './review/decisionStore';
+import { EditService } from './review/editService';
+import { ChangesTreeProvider, type ChangeTreeItem } from './review/changesTree';
+import { DiffContentProvider, DIFF_SCHEME, proposedUri } from './review/diffProvider';
 import { ServerManager, ServerState } from './trueforge/serverManager';
 import { SessionManager } from './trueforge/sessionManager';
 import { ChatViewProvider } from './ui/chatProvider';
 import { StatusBar } from './ui/statusBar';
 import { logger, redact } from './util/logger';
 
-export function activate(context: vscode.ExtensionContext): void {
+export interface ForgeGuardApi {
+  server: ServerManager;
+  sessions: SessionManager;
+  editor: EditorMcpServer;
+  changes: ChangeStore;
+  editService: EditService;
+}
+
+export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
   const log = logger();
   log.info('ForgeGuard activating');
 
@@ -20,19 +34,24 @@ export function activate(context: vscode.ExtensionContext): void {
       {
         name: MCP_SERVER_NAME,
         enable_tools: ['@all'],
-        // Every Phase 2 tool is read-only: no approval gate, the agent may use
-        // them freely. Phase 4 adds propose_edit/run_command with explicit
-        // approval selectors.
-        require_approval_for_tools: [],
+        // The read-only tools never pause the turn; propose_edit always does.
+        require_approval_for_tools: ['propose_edit'],
         preload: true,
       },
     ];
   });
 
+  // The review pipeline: proposals → hunk-level review → verified writes.
+  const changes = new ChangeStore();
+  const decisions = new DecisionStore();
+  const editService = new EditService(sessions, vscodeBridge(), vscodeProposalContext(), changes, decisions);
+  editor.setEditTools({ service: editService });
+
   const chatProvider = new ChatViewProvider(
     vscode.Uri.joinPath(context.extensionUri, 'out', 'webview').fsPath,
     server,
     sessions,
+    editService,
   );
   const statusBar = new StatusBar(server, sessions);
 
@@ -40,6 +59,23 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(d);
     return d;
   };
+
+  // The Changes view (pending reviews) and the virtual diff documents.
+  const diffProvider = new DiffContentProvider(editService);
+  registerDisposable(vscode.workspace.registerTextDocumentContentProvider(DIFF_SCHEME, diffProvider));
+  const changesTree = new ChangesTreeProvider(editService, {
+    openDiff: (item) => void openDiff(item),
+    accept: (item) => void acceptItem(item),
+    reject: (item) => void rejectItem(item),
+  });
+  const changesView = vscode.window.createTreeView('forgeguard.changesView', {
+    treeDataProvider: changesTree,
+    showCollapseAll: true,
+  });
+  registerDisposable(changesView);
+  registerDisposable(changesTree);
+  registerDisposable(diffProvider);
+  registerDisposable(editService);
 
   registerDisposable(
     vscode.window.registerWebviewViewProvider(ChatViewProvider.viewId, chatProvider, {
@@ -111,7 +147,12 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.stopTurn', () => sessions.stopTurn()),
+    vscode.commands.registerCommand('forgeguard.stopTurn', async () => {
+      await sessions.stopTurn();
+      // Stopping denies every approval that is still waiting (FR-5).
+      await editService.denyAllPending('The turn was stopped.');
+      refreshPending();
+    }),
   );
   registerDisposable(
     vscode.commands.registerCommand('forgeguard.switchModel', async () => {
@@ -141,14 +182,172 @@ export function activate(context: vscode.ExtensionContext): void {
       void vscode.commands.executeCommand('forgeguard.chatView.focus');
     }),
   );
-  // Placeholder until Phase 4 wires the Changes view
+
+  // --- Review commands -------------------------------------------------
+
+  /** The review the user is working on (the first pending one). */
+  function currentReviewId(): string | undefined {
+    const pending = changes.pending();
+    return pending[0]?.id;
+  }
+
+  async function openDiff(item: ChangeTreeItem): Promise<void> {
+    if (item.kind === 'group') {
+      await vscode.commands.executeCommand('forgeguard.reviewNextChange');
+      return;
+    }
+    const changeSetId = item.changeSetId;
+    const path = item.path;
+    const left = vscode.Uri.file(path);
+    const right = proposedUri(changeSetId, path);
+    await vscode.commands.executeCommand('vscode.diff', left, right, `${path} (proposed)`);
+    if (await diffProvider.isStale(changeSetId, path)) {
+      void vscode.window.showWarningMessage(
+        'This file changed after the agent proposed the edit. The diff may not match what will be written.',
+      );
+    }
+    if (item.kind === 'hunk') {
+      // Scroll the diff to the hunk the user clicked.
+      const line = Math.max(0, item.hunk.oldStart - 1);
+      const range = new vscode.Range(line, 0, line + Math.max(1, item.hunk.newLines.length), 0);
+      try {
+        await vscode.commands.executeCommand('_revealRange', right, range, 'inCenter');
+      } catch {
+        // The command is internal: the diff still opens, just not scrolled.
+      }
+    }
+  }
+
+  function acceptItem(item: ChangeTreeItem): void {
+    if (item.kind === 'group') {
+      const changeSet = changes.get(item.changeSetId);
+      if (changeSet) { changes.acceptAll(changeSet.id); }
+    } else if (item.kind === 'file') {
+      const changeSet = changes.get(item.changeSetId);
+      const file = changeSet?.files.find((f) => f.path === item.path);
+      if (changeSet && file) {
+        changes.setAccepted(changeSet.id, file.path, new Set(file.hunks.map((h) => h.id)));
+      }
+    } else {
+      changesTree.setHunkAccepted(item.changeSetId, item.path, item.hunkId, true);
+    }
+    changesTree.refresh();
+    refreshPending();
+  }
+
+  function rejectItem(item: ChangeTreeItem): void {
+    if (item.kind === 'group') {
+      void editService.rejectChangeSet(item.changeSetId);
+    } else if (item.kind === 'file') {
+      const changeSet = changes.get(item.changeSetId);
+      const file = changeSet?.files.find((f) => f.path === item.path);
+      if (changeSet && file) { changes.setAccepted(changeSet.id, file.path, new Set()); }
+    } else {
+      changesTree.setHunkAccepted(item.changeSetId, item.path, item.hunkId, false);
+    }
+    changesTree.refresh();
+    refreshPending();
+  }
+
+  function refreshPending(): void {
+    const pending = changes.pending();
+    const hunks = pending.reduce((sum, c) => sum + c.files.reduce((s, f) => s + f.hunks.length, 0), 0);
+    statusBar.setPending(hunks);
+    changesTree.refresh();
+  }
+
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.reviewNextChange', () => {
-      void vscode.window.showInformationMessage('Review flow arrives in Phase 4.');
+    vscode.commands.registerCommand('forgeguard.reviewNextChange', async () => {
+      await vscode.commands.executeCommand('forgeguard.changesView.focus');
+      const pending = changes.pending();
+      if (!pending.length) {
+        void vscode.window.showInformationMessage('No changes are waiting for review.');
+      }
     }),
   );
 
-  // Health probe result surfaces through the status bar via onStateChange.
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.review.openDiff', (item: ChangeTreeItem) => openDiff(item)),
+  );
+
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.acceptHunk', async (item?: ChangeTreeItem) => {
+      const target = item ?? (await pickHunk());
+      if (target) { acceptItem(target); }
+    }),
+  );
+
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.rejectHunk', async (item?: ChangeTreeItem) => {
+      const target = item ?? (await pickHunk());
+      if (target) { rejectItem(target); }
+    }),
+  );
+
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.acceptAll', () => {
+      const id = currentReviewId();
+      if (!id) {
+        void vscode.window.showInformationMessage('No changes are waiting for review.');
+        return;
+      }
+      changes.acceptAll(id);
+      changesTree.refresh();
+    }),
+  );
+
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.rejectAll', async () => {
+      const id = currentReviewId();
+      if (!id) {
+        void vscode.window.showInformationMessage('No changes are waiting for review.');
+        return;
+      }
+      await editService.rejectChangeSet(id, 'The user rejected this change.');
+      refreshPending();
+    }),
+  );
+
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.applyChanges', async () => {
+      const id = currentReviewId();
+      if (!id) {
+        void vscode.window.showInformationMessage('No changes are waiting for review.');
+        return;
+      }
+      await editService.applyChangeSet(id);
+      refreshPending();
+    }),
+  );
+
+  /** QuickPick to choose a hunk when the command comes from the palette. */
+  async function pickHunk(): Promise<ChangeTreeItem | undefined> {
+    const pending = changes.pending();
+    const items: Array<Extract<ChangeTreeItem, { kind: 'hunk' }>> = [];
+    for (const changeSet of pending) {
+      for (const file of changeSet.files) {
+        for (const hunk of file.hunks) {
+          items.push({
+            kind: 'hunk',
+            changeSetId: changeSet.id,
+            path: file.path,
+            hunkId: hunk.id,
+            label: `${file.path} · lines ${hunk.oldStart}`,
+            hunk,
+          });
+        }
+      }
+    }
+    if (!items.length) {
+      void vscode.window.showInformationMessage('No changes are waiting for review.');
+      return undefined;
+    }
+    const picked = await vscode.window.showQuickPick(
+      items.map((i) => ({ label: i.label, description: i.path, item: i })),
+      { placeHolder: 'Choose a change' },
+    );
+    return picked?.item;
+  }  // Health probe result surfaces through the status bar via onStateChange.
   registerDisposable(
     server.onStateChange((s) => {
       if (s === ServerState.Ready) { log.info('TrueForge ready'); }
@@ -170,7 +369,49 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
+  // The tree and the status bar follow the review state.
+  registerDisposable(
+    editService.onUpdate(() => {
+      changesTree.refresh();
+      refreshPending();
+    }),
+  );
+  registerDisposable(
+    changes.onEvent(() => {
+      changesTree.refresh();
+      refreshPending();
+    }),
+  );
+
+  // Checkboxes on the hunk nodes: checked means "apply this hunk".
+  registerDisposable(
+    changesView.onDidChangeCheckboxState((event) => {
+      for (const [item, state] of event.items) {
+        const target = item as ChangeTreeItem;
+        if (target.kind !== 'hunk') { continue; }
+        changesTree.setHunkAccepted(
+          target.changeSetId,
+          target.path,
+          target.hunkId,
+          state === vscode.TreeItemCheckboxState.Checked,
+        );
+      }
+    }),
+  );
+
+  // Stopping a turn denies every approval that is still waiting (FR-5).
+  // This is tied to the explicit stop action, NOT to the end of a turn: a turn
+  // that ends AT the approval gate must keep its review alive.
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.denyPendingApprovals', async () => {
+      await editService.denyAllPending('The turn was stopped.');
+      refreshPending();
+    }),
+  );
+
   log.info('ForgeGuard activated');
+
+  return { server, sessions, editor, changes, editService };
 }
 
 /** Fault injection is only available in development mode or when enabled. */

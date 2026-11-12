@@ -30,6 +30,7 @@ export function expect(actual: unknown): {
   toBeInstanceOf(cls: new () => unknown): void;
   toMatch(re: RegExp | string): void;
   toBeUndefined(): void;
+  toBeDefined(): void;
   not: {
     toBe(expected: unknown): void;
     toContain(expected: unknown): void;
@@ -63,6 +64,9 @@ export function expect(actual: unknown): {
     },
     toBeUndefined(): void {
       if (actual !== undefined) { throw new Error(`expected undefined got ${String(actual)}`); }
+    },
+    toBeDefined(): void {
+      if (actual === undefined) { throw new Error('expected defined'); }
     },
   };
   return {

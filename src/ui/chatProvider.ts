@@ -3,6 +3,7 @@ import type { HostToWebviewMessage, Message } from '../../webview/protocol';
 import { webviewToHostMessageSchema, type WebviewToHostParsed } from './chatProtocolSchemas';
 import { type ServerManager, ServerState } from '../trueforge/serverManager';
 import { type SessionManager } from '../trueforge/sessionManager';
+import { type EditService, type ReviewUpdate } from '../review/editService';
 import { logger } from '../util/logger';
 import { ToolCallBuffer, type StreamingEvent } from '../trueforge/schemas';
 
@@ -29,12 +30,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   private readonly seenToolCalls = new Set<string>();
   /** tool_call_id -> chat message id of the pending tool row. */
   private readonly pendingToolRows = new Map<string, string>();
+  /** Change set id -> the chat message id of its change card. */
+  private readonly changeCards = new Map<string, string>();
   private readonly subscriptions: vscode.Disposable[] = [];
 
   constructor(
     private readonly webviewRoot: string, // out/webview — built webview assets
     server: ServerManager,
     private readonly sessions: SessionManager,
+    private readonly reviews?: EditService,
   ) {
     this.subscriptions.push(
       server.onStateChange((state) => {
@@ -49,6 +53,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         this.post({ type: 'chip', chip: this.chip });
       }),
     );
+    if (reviews) {
+      this.subscriptions.push(reviews.onUpdate((update) => this.onReviewUpdate(update)));
+    }
   }
 
   dispose(): void {
@@ -119,6 +126,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       }
       case 'stop': {
         await this.sessions.stopTurn();
+        // Stopping denies every approval that is still waiting (FR-5).
+        await this.reviews?.denyAllPending('The turn was stopped.');
         break;
       }
       case 'newChat': {
@@ -142,6 +151,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       }
       case 'toggleTool': {
         this.updateMessage(m.messageId, (msg) => ({ ...msg, expanded: !msg.expanded }));
+        break;
+      }
+      case 'openReview': {
+        void vscode.commands.executeCommand('forgeguard.reviewNextChange');
         break;
       }
     }
@@ -244,7 +257,45 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   /**
-   * Add a collapsed tool-activity row. Rows are keyed by tool call id when the
+   * A review changed: show a change card per file, with a status chip
+   * (PRD 6.4). The card is the chat's window into the Changes view.
+   */
+  private onReviewUpdate(update: ReviewUpdate): void {
+    if (!this.reviews || !update.changeSetId) { return; }
+    const changeSet = this.reviews.changeStore.get(update.changeSetId);
+    if (!changeSet) { return; }
+    const status = statusLabel(update.kind, changeSet.state);
+    const existing = this.changeCards.get(update.changeSetId);
+
+    if (!existing) {
+      for (const file of changeSet.files) {
+        const id = `c${Date.now()}-${this.messages.length}`;
+        this.messages.push({
+          id,
+          role: 'change',
+          text: file.path,
+          change: {
+            path: file.path,
+            added: file.hunks.reduce((sum, h) => sum + h.newLines.length, 0),
+            removed: file.hunks.reduce((sum, h) => sum + h.oldLines, 0),
+            status,
+            note: update.summary,
+          },
+        });
+        this.changeCards.set(update.changeSetId, id);
+      }
+      this.post({ type: 'messages', messages: this.messages });
+      return;
+    }
+
+    // Update the existing card (status chip + receipt).
+    this.updateMessage(existing, (m) => ({
+      ...m,
+      change: m.change ? { ...m.change, status, note: update.summary } : m.change,
+    }));
+  }
+
+  /** Add a collapsed tool-activity row. Rows are keyed by tool call id when the
    * server provides one, so a result always lands on the row it belongs to
    * even when several calls run in parallel.
    */
@@ -329,6 +380,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   private post(m: HostToWebviewMessage): void {
     void this.view?.webview.postMessage(m);
   }
+}
+
+/** Status chip text for a review (PRD 6.4). */
+export function statusLabel(kind: ReviewUpdate['kind'], state: string): string {
+  if (kind === 'applied') { return 'Verified'; }
+  if (kind === 'rejected') { return 'Rejected'; }
+  if (kind === 'conflict') { return 'Conflict'; }
+  if (kind === 'failed') { return 'Failed check'; }
+  if (state === 'partially_applied') { return 'Partly applied'; }
+  if (state === 'applying') { return 'Applying'; }
+  return 'Awaiting review';
 }
 
 /** Bound tool-row detail size (never the raw cap — see truncate.ts for FR-9). */

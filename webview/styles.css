@@ -145,6 +145,49 @@ button:disabled { opacity: 0.6; cursor: default; }
   * { transition: none !important; animation: none !important; }
 }
 
+/* Change cards (proposed edits awaiting review) */
+.msg.change {
+  width: 100%;
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.msg.change .changeHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.msg.change .changeName {
+  font-family: var(--vscode-editor-font-family);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msg.change .changeCounts { color: var(--vscode-descriptionForeground); }
+
+.msg.change .changeNote { width: 100%; }
+
+.chipStatus {
+  border-radius: var(--fg-radius);
+  padding: 1px 8px;
+  border: var(--fg-border);
+  color: var(--vscode-foreground);
+}
+
+.chipStatus.ok { background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
+.chipStatus.bad { background: var(--vscode-inputValidation-errorBackground); color: var(--vscode-inputValidation-errorForeground); }
+.chipStatus.pending { background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); opacity: 0.85; }
+.chipStatus.muted { color: var(--vscode-descriptionForeground); }
+
 /* Tool activity rows (collapsed by default) */
 .msg.tool {
   background: var(--vscode-sideBar-background);

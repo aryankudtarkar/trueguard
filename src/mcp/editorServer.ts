@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { logger, redact } from '../util/logger';
 import { PathGuard, type ResolvedPath } from './pathGuard';
 import { registerEditorTools, type EditorToolDeps, type ToolRegistrar } from './tools';
+import { registerEditTools, type EditToolDeps } from './editTool';
 import { vscodeToolDeps } from './vscodeTools';
 
 /**
@@ -37,10 +38,19 @@ export class EditorMcpServer implements vscode.Disposable {
     private readonly deps: EditorToolDeps = vscodeToolDeps(),
     private readonly startPort: number = DEFAULT_MCP_PORT,
     private readonly maxPortTries = 32,
+    private editTools?: EditToolDeps,
   ) {}
 
   getEndpoint(): McpEndpoint | undefined {
     return this.endpoint;
+  }
+
+  /**
+   * Attach the edit tools once the review service exists (the service needs
+   * the session manager, which needs this server's endpoint).
+   */
+  setEditTools(tools: EditToolDeps): void {
+    this.editTools = tools;
   }
 
   async start(): Promise<McpEndpoint> {
@@ -132,6 +142,9 @@ export class EditorMcpServer implements vscode.Disposable {
       // changes at runtime are honored.
       guard: new GuardProxy(this.deps),
     });
+    if (this.editTools) {
+      registerEditTools(registrar, this.editTools);
+    }
     return server;
   }
 

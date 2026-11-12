@@ -1,12 +1,24 @@
 import * as vscode from 'vscode';
 import { ServerState, type ServerManager } from './serverManager';
-import { streamingEventSchema, type StreamingEvent } from './schemas';
+import {
+  ToolCallBuffer,
+  streamingEventSchema,
+  type StreamingEvent,
+  type ToolApprovalRequiredEvent,
+} from './schemas';
 import { logger } from '../util/logger';
 
 export interface StoredSession {
   id: string;
   title: string;
   createdAt: string;
+}
+
+/** A tool call the model made, with the arguments it sent. */
+export interface RecordedToolCall {
+  id: string;
+  name: string;
+  arguments: string;
 }
 
 const MAX_STORED_SESSIONS = 20;
@@ -24,6 +36,13 @@ export class SessionManager implements vscode.Disposable {
   readonly onTurnEnded = this.turnEndedEmitter.event;
   private readonly turnStartedEmitter = new vscode.EventEmitter<void>();
   readonly onTurnStarted = this.turnStartedEmitter.event;
+  private readonly toolCallEmitter = new vscode.EventEmitter<RecordedToolCall>();
+  readonly onToolCall = this.toolCallEmitter.event;
+  private readonly approvalEmitter = new vscode.EventEmitter<ToolApprovalRequiredEvent>();
+  readonly onApprovalRequired = this.approvalEmitter.event;
+  /** Tool calls of the current turn, by id (the approval correlation key). */
+  private readonly toolCalls = new Map<string, RecordedToolCall>();
+  private readonly toolCallBuffer = new ToolCallBuffer();
 
   constructor(
     private readonly server: ServerManager,
@@ -70,6 +89,42 @@ export class SessionManager implements vscode.Disposable {
     return this.turnAbort !== undefined;
   }
 
+  /** The tool call with this id, recorded during the current turn. */
+  getToolCall(id: string): RecordedToolCall | undefined {
+    return this.toolCalls.get(id);
+  }
+
+  /** Every tool call recorded in the current turn. */
+  getToolCalls(): RecordedToolCall[] {
+    return [...this.toolCalls.values()];
+  }
+
+  /**
+   * Send the approval decision as a new turn on the same session
+   * (verified: docs/TRUEFORGE_NOTES.md — the decision is a `user.tool_approval`
+   * input item keyed by tool_call_id).
+   */
+  async sendApproval(
+    threadId: string,
+    toolCallId: string,
+    status: 'allow' | 'deny',
+    reason?: string,
+  ): Promise<void> {
+    const sessionId = await this.ensureSession(this.lastModelName ?? 'openai/gpt-4o-mini');
+    const input = [
+      {
+        type: 'user.tool_approval',
+        thread_id: threadId,
+        tool_call_id: toolCallId,
+        approval: status === 'allow' ? { status: 'allow' } : { status: 'deny', reason: reason ?? 'The user rejected this change.' },
+      },
+    ];
+    await this.server.client.sendTurn(sessionId, input, { onEvent: () => undefined, onEnd: () => undefined });
+  }
+
+  /** The model used for the last turn (needed to create the session). */
+  private lastModelName: string | undefined;
+
   /**
    * Send a turn and stream validated events to `onEvent`. One active turn per
    * session (concurrency rule); rejects if a turn is already running.
@@ -87,12 +142,16 @@ export class SessionManager implements vscode.Disposable {
     const controller = new AbortController();
     this.turnAbort = controller;
     this.turnStartedEmitter.fire();
+    this.lastModelName = modelName;
+    this.toolCalls.clear();
+    this.toolCallBuffer.drain();
     let cancelled = false;
     try {
       const sessionId = await this.ensureSession(modelName);
       await this.server.client.sendTurn(sessionId, input, {
         onEvent: (raw) => {
           const event = streamingEventSchema.parse(raw); // already validated; belt-and-braces
+          this.recordEvent(event);
           onEvent(event);
         },
         onEnd: () => undefined,
@@ -110,6 +169,24 @@ export class SessionManager implements vscode.Disposable {
         void this.server.client.cancelSession(this.activeSessionId);
       }
       this.turnEndedEmitter.fire();
+    }
+  }
+
+  /** Record tool calls and surface the approval gate. */
+  private recordEvent(event: StreamingEvent): void {
+    if (event.type === 'model.message.delta' || event.type === 'model.message') {
+      this.toolCallBuffer.add(event.tool_calls);
+      if (event.type === 'model.message.delta' && event.finish_reason !== 'tool_calls') { return; }
+      for (const call of this.toolCallBuffer.drain()) {
+        if (!call.id || this.toolCalls.has(call.id)) { continue; }
+        const recorded: RecordedToolCall = { id: call.id, name: call.name, arguments: call.arguments ?? '{}' };
+        this.toolCalls.set(call.id, recorded);
+        this.toolCallEmitter.fire(recorded);
+      }
+      return;
+    }
+    if (event.type === 'tool.approval_required') {
+      this.approvalEmitter.fire(event);
     }
   }
 
@@ -131,5 +208,7 @@ export class SessionManager implements vscode.Disposable {
     this.turnAbort?.abort();
     this.turnEndedEmitter.dispose();
     this.turnStartedEmitter.dispose();
+    this.toolCallEmitter.dispose();
+    this.approvalEmitter.dispose();
   }
 }
