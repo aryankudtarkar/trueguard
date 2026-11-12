@@ -19,6 +19,6 @@
     "sourceMap": true,
     "outDir": "out"
   },
-  "include": ["src/**/*.ts", "webview/**/*.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "out", "spikes"]
 }

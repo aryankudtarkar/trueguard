@@ -20,4 +20,9 @@ export default [
     files: ['**/*.mjs', 'spikes/**/*.mjs', 'tools/**/*.mjs', 'scripts/**/*.mjs'],
     rules: { 'no-console': 'off' },
   },
+  {
+    // Integration tests log inside the VS Code extension host; console is the only channel.
+    files: ['test/integration/**/*.ts', 'test/mocks/**/*.ts'],
+    rules: { 'no-console': 'off' },
+  },
 ];

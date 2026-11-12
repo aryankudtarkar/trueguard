@@ -14,16 +14,153 @@
     "AI",
     "Chat"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onView:forgeguard.chatView",
+    "onCommand:forgeguard.startTrueForge"
+  ],
   "main": "./out/extension.js",
-  "contributes": {},
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "forgeguard-container",
+          "title": "ForgeGuard",
+          "icon": "media/forgeguard.svg"
+        }
+      ]
+    },
+    "views": {
+      "forgeguard-container": [
+        {
+          "type": "webview",
+          "id": "forgeguard.chatView",
+          "name": "Chat"
+        },
+        {
+          "type": "tree",
+          "id": "forgeguard.changesView",
+          "name": "Changes"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "forgeguard.chatView",
+        "contents": "ForgeGuard puts a careful coding agent here. Start TrueForge to begin.\n[Start TrueForge](command:forgeguard.startTrueForge)\nNothing is written to your files without your review."
+      }
+    ],
+    "commands": [
+      {
+        "command": "forgeguard.startTrueForge",
+        "title": "ForgeGuard: Start TrueForge",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.stopTrueForge",
+        "title": "ForgeGuard: Stop TrueForge",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.newChat",
+        "title": "ForgeGuard: New Chat",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.stopTurn",
+        "title": "ForgeGuard: Stop Turn",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.switchModel",
+        "title": "ForgeGuard: Switch Model",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.showSessionLog",
+        "title": "ForgeGuard: Show Session Log",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.reviewNextChange",
+        "title": "ForgeGuard: Review Next Change",
+        "category": "ForgeGuard"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "forgeguard.newChat",
+        "key": "ctrl+shift+alt+n",
+        "mac": "cmd+shift+alt+n"
+      },
+      {
+        "command": "forgeguard.stopTurn",
+        "key": "ctrl+shift+alt+s",
+        "mac": "cmd+shift+alt+s"
+      }
+    ],
+    "configuration": {
+      "title": "ForgeGuard",
+      "properties": {
+        "forgeguard.trueforge.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:8790",
+          "description": "Address of the local TrueForge server."
+        },
+        "forgeguard.models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string",
+                "description": "TrueForge model FQN, e.g. openai/gpt-4o-mini"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "ref"
+            ]
+          },
+          "default": [],
+          "description": "Ordered model profiles. Index 0 is the primary model; failures fall over to the next."
+        },
+        "forgeguard.activeModelIndex": {
+          "type": "integer",
+          "default": 0,
+          "description": "Index into forgeguard.models used for new turns."
+        },
+        "forgeguard.toolOutputCapBytes": {
+          "type": "integer",
+          "default": 16384,
+          "description": "Maximum size of a single tool result returned to the agent."
+        },
+        "forgeguard.commandTimeoutSec": {
+          "type": "integer",
+          "default": 120,
+          "description": "Default timeout for agent-run terminal commands."
+        },
+        "forgeguard.dev.enableFaultInjection": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable development fault-injection commands (429, 503, timeout, 401)."
+        }
+      }
+    }
+  },
   "scripts": {
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src webview test tools scripts --max-warnings 0",
     "test:unit": "vitest run --config vitest.config.ts",
-    "test:int": "vitest run --config vitest.integration.config.ts",
+    "test:int": "node scripts/build-integration.mjs && node scripts/test-integration.mjs",
     "design-lint": "node scripts/design-lint.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test:unit && npm run test:int && npm run design-lint",
     "package": "vsce package",
@@ -36,7 +173,7 @@
     "@types/vscode": "1.93.0",
     "@typescript-eslint/eslint-plugin": "8.18.2",
     "@typescript-eslint/parser": "8.18.2",
-    "@vscode/test-electron": "2.4.1",
+    "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "3.2.1",
     "esbuild": "0.24.2",
     "eslint": "9.17.0",

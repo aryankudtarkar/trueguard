@@ -136,6 +136,12 @@ const server = createServer(async (req, res) => {
     return;
   }
   let m = p.match(/^\/api\/v1\/sessions\/([^/]+)$/);
+  if (m && req.method === 'GET') {
+    const sess = state.sessions.get(m[1]);
+    if (!sess) { json(res, 404, { error: { message: 'Session not found' } }); return; }
+    json(res, 200, { data: { id: m[1], agent: { type: 'inline', spec: sess.agent.spec } } });
+    return;
+  }
   if (m && req.method === 'PATCH') {
     const sess = state.sessions.get(m[1]);
     if (!sess) { json(res, 404, { error: { message: 'Session not found' } }); return; }
