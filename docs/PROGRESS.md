@@ -1,16 +1,31 @@
 # Progress
 
+Owner gate G0: **approved 2026-11-12** — Phase 1 started.
+
+## Phase 0 (audited PASS, tag phase-0-audited)
+
+| Task | Status | Commit |
+| --- | --- | --- |
+| 0.1 skeleton + tooling | done | 30fe1b6 |
+| 0.2 brief extraction + conflicts | done | 30fe1b6 |
+| 0.3 TrueForge packages verified | done | 10574db |
+| 0.4 verification ledger | done | 10574db |
+| 0.5–0.8 spikes 1–4 | done | 372f370 |
+| 0.9 fake-trueforge | done | beeb07d |
+| 0.10 ledger files | done | 30fe1b6 |
+| audit | PASS | 226cf3d |
+
+## Phase 1 (extension shell, TrueForge client, streaming chat)
+
 | Task | Status | Commit | Note |
 | --- | --- | --- | --- |
-| 0.1 Repo skeleton + tooling, `npm run verify` green | done | 30fe1b6 | tsconfig strict, esbuild, eslint, vitest, launch/tasks, design-lint, all npm scripts |
-| 0.2 Extract brief, write BRIEF_NOTES, log conflicts | done | 30fe1b6 | 5 conflicts logged in DECISIONS; brief wins (inline edit + context assembly promoted to P0) |
-| 0.3 Install TrueForge packages, read README/types | done | 10574db | openapi.json pulled from live server; SDK is placeholder → HTTP API |
-| 0.4 TRUEFORGE_NOTES verification ledger | done | (pending) | all Phase-1-critical items VERIFIED via spikes |
-| 0.5 Spike 1 hello | done | (pending) | docs/spikes/hello-transcript.md; SSE framing + event sequence verified |
-| 0.6 Spike 2 mcp-echo | done | (pending) | stateless Streamable HTTP works; fresh McpServer per request |
-| 0.7 Spike 3 approval correlation | done | (pending) | tool_call_id + thread_id; allow = new turn user.tool_approval; deny → error tool result with reason |
-| 0.8 Spike 4 failover / model override | done | (pending) | PATCH session spec switches model; error turns end HTTP 200 with turn.done error |
-| 0.9 fake-trueforge server | done | beeb07d | verified-subset emulation + faults; 12 unit tests |
-| 0.10 PROGRESS/DECISIONS/BACKLOG files | done | 30fe1b6 | — |
-| Audit Phase 0 (A1–A7) | done | 226cf3d | verdict PASS; tag `phase-0-audited` |
-| OWNER GATE G0 | waiting | — | owner to review TRUEFORGE_NOTES + BRIEF_NOTES before Phase 1 |
+| 1.1 extension.ts + contributes | done | c1facbf | container, 2 views, 7 commands, keybindings, settings, viewsWelcome |
+| 1.2 Logger, zod schemas, hashing/mutex/SSE utils | done | c1facbf | |
+| 1.3 ServerManager + viewsWelcome | done | c1facbf | spawn/health/stop/state events |
+| 1.4 TrueForgeClient (HTTP/SSE, zod, abort) | done | c1facbf | no SDK exists → HTTP API |
+| 1.5 SessionManager | done | c1facbf | create/send/stop, 20-session persistence |
+| 1.6 Chat webview | done | c1facbf | CSP+nonce, sanitized markdown, batched render, chip, Send/Stop |
+| 1.7 Status bar item | done | c1facbf | idle/working/offline/pending |
+| 1.8 Tests unit + integration | done | c1facbf | 19 unit vs fake server; 2 int in real VS Code |
+| Phase 1 exit gate: real streaming + Stop on real TrueForge | todo | — | manual smoke with real provider |
+| Phase 1 audit | todo | — | after smoke |

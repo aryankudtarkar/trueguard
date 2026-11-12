@@ -121,6 +121,9 @@ export class TrueForgeClient {
           callbacks.onEvent(event);
         }
       }
+    } catch (e) {
+      // A user-initiated stop is not an error: the stream was cancelled on purpose.
+      if (!signal?.aborted) { throw e; }
     } finally {
       reader.releaseLock();
       callbacks.onEnd();
