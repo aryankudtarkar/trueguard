@@ -198,8 +198,23 @@ describe('runTool wrapper', () => {
   });
 });
 
-describe('output cap', () => {
-  it('elides an over-cap result and keeps the marker', async () => {
+describe('large files', () => {
+  it('refuses a file over the size limit and asks for a range', async () => {
+    const bigDeps: EditorToolDeps = { ...deps, sizeOf: async () => 5_000_000 };
+    const res = await readFile({ path: 'src/app.ts' }, { deps: bigDeps, guard: new PathGuard({ roots: [root] }) });
+    expect(res.isError).toBe(true);
+    expect(parse(res).error).toBe('too_large');
+    expect(String(parse(res).message)).toContain('startLine');
+  });
+
+  it('skips oversized files while searching', async () => {
+    const bigDeps: EditorToolDeps = { ...deps, sizeOf: async () => 5_000_000 };
+    const out = parse(await searchText({ pattern: 'const a' }, { deps: bigDeps, guard: new PathGuard({ roots: [root] }) }));
+    expect((out.matches as unknown[]).length).toBe(0);
+  });
+});
+
+describe('output cap', () => {  it('elides an over-cap result and keeps the marker', async () => {
     capBytes = 1024;
     try {
       const res = await readFile({ path: 'src/big.ts' }, ctx());

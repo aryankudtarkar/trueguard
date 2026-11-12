@@ -57,7 +57,7 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
   `forgeguard` (publisher `forgeguard-dev`), matching PRD defaults.
 - **Consequence:** none beyond path naming.
 
-## 2026-11-12 — Task 1.4 "reconnect with backoff" interpretation (R12 default)
+## 2026-11-12 — Task 2.4 "reconnect with backoff" interpretation (R12 default)
 
 - **Context:** the verified TrueForge API has no mid-turn SSE resume endpoint for
   inline sessions (docs/TRUEFORGE_NOTES.md — subscribe replays a past turn, it
@@ -69,3 +69,39 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
   silently resuming.
 - **Consequence:** "a TrueForge restart is survived without a stuck UI" (FR-2 AC)
   is met via state recovery; stream-level resume stays out of scope.
+
+## 2026-11-12 — Phase 2: the file listing comes from git, not from findFiles
+
+- **Context:** FR-3 requires `list_files` to respect `.gitignore`. VS Code's
+  `workspace.findFiles` does **not** (proved by an integration probe:
+  `test/integration/gitignore-probe.test.ts`), and it happily returns
+  `node_modules` — thousands of files the agent must never see.
+- **Options:** (a) implement a `.gitignore` matcher in TypeScript, (b) call
+  `git ls-files --cached --others --exclude-standard`, (c) keep findFiles.
+- **Choice:** (b), with (c) as the fallback for folders that are not in a git
+  work tree. Git is the source of truth for what is ignored; the listing is
+  cached for 5 s so repeated searches do not spawn a process each time.
+- **Consequence:** `list_files` needs git on PATH (it always is for a coding
+  agent's users). Non-git folders still work, minus `.gitignore` support.
+
+## 2026-11-12 — Phase 2: the tool-result cap shrinks the value, not the text
+
+- **Context:** FR-9 caps every tool result at 16 KB. Cutting the *serialized*
+  JSON at a byte offset can split an escape sequence and hand the agent
+  unparseable output — a silent corruption of the contract.
+- **Choice:** `capJson` (src/util/jsonCap.ts) shrinks the value: the longest
+  string inside it is elided head/tail, then arrays are halved, until the
+  payload fits. The structure (path, line counts, hashes) always survives.
+- **Consequence:** the agent can always parse a tool result, and the marker
+  tells it how to narrow the request.
+
+## 2026-11-12 — Phase 2: read-only tools are attached with no approval gate
+
+- **Context:** TrueForge's default `require_approval_for_tools` is
+  `["@write","@destructive"]`. Our Phase 2 tools are read-only, but we do not
+  know how TrueForge classifies them.
+- **Choice:** sessions attach the connector with an explicit
+  `require_approval_for_tools: []`, so a read never pauses the turn. Phase 4
+  re-adds the gate with the explicit tool names (`propose_edit`, `run_command`).
+- **Consequence:** the read-only phase cannot stall on an approval nobody asked
+  for; the write phase still gates by name.

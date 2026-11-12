@@ -11,6 +11,8 @@ import { PathGuardError, type ResolvedPath } from './pathGuard';
 
 export const LINE_CAP_DEFAULT = 400;
 export const LINE_CAP_MAX = 2000;
+/** Files larger than this are refused: the agent must narrow the request. */
+export const MAX_FILE_BYTES = 2_000_000;
 
 export const readFileSchema = z.object({
   path: z.string().min(1).describe('Workspace-relative file path'),
@@ -56,6 +58,8 @@ export interface EditorToolDeps {
   allowSecretReads(): boolean;
   /** Maximum size in bytes of one tool result (FR-9, default 16 KB). */
   outputCapBytes(): number;
+  /** Size of a file in bytes, when it can be determined cheaply. */
+  sizeOf?(absolute: string): Promise<number | undefined>;
 }
 
 export interface ToolContext {
@@ -166,6 +170,13 @@ export const readFile = defineTool(async (args: ReadFileInput, ctx: ToolContext)
     return errorOut('invalid', `endLine ${args.endLine} is before startLine ${args.startLine}`);
   }
   const { absolute } = await ctx.guard.resolve(args.path, { mustExist: true });
+  const size = await ctx.deps.sizeOf?.(absolute);
+  if (size !== undefined && size > MAX_FILE_BYTES) {
+    return errorOut(
+      'too_large',
+      `file is ${size} bytes, over the ${MAX_FILE_BYTES} byte limit. Narrow the request with startLine/endLine.`,
+    );
+  }
   const { content } = await ctx.deps.readText(absolute);
   const lines = content.split(/\r\n|\r|\n/);
   // A trailing newline produces a final empty element; it is not a line.
@@ -213,6 +224,8 @@ export const searchText = defineTool(async (args: SearchTextInput, ctx: ToolCont
     if (matches.length >= max) { break; }
     try {
       const { absolute } = await ctx.guard.resolve(rel, { mustExist: true });
+      const size = await ctx.deps.sizeOf?.(absolute);
+      if (size !== undefined && size > MAX_FILE_BYTES) { continue; } // too big to scan
       const { content } = await ctx.deps.readText(absolute);
       const lines = content.split(/\r\n|\r|\n/);
       for (let i = 0; i < lines.length && matches.length < max; i++) {

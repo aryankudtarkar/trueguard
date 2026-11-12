@@ -173,6 +173,15 @@ async function getEditorContext(): Promise<unknown> {
   };
 }
 
+async function sizeOf(absolute: string): Promise<number | undefined> {
+  const open = vscode.workspace.textDocuments.find((d) => d.uri.fsPath === absolute);
+  if (open) { return Buffer.byteLength(open.getText(), 'utf8'); }
+  return fs
+    .stat(absolute)
+    .then((s) => s.size)
+    .catch(() => undefined);
+}
+
 export function vscodeToolDeps(): EditorToolDeps {
   const log = logger();
   return {
@@ -188,5 +197,6 @@ export function vscodeToolDeps(): EditorToolDeps {
       vscode.workspace.getConfiguration('forgeguard').get<boolean>('allowSecretReads', false),
     outputCapBytes: () =>
       vscode.workspace.getConfiguration('forgeguard').get<number>('toolOutputCapBytes', 16_384),
+    sizeOf,
   };
 }
