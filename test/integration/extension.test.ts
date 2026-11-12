@@ -15,6 +15,23 @@ describe('extension activation', () => {
     expect(cfg.has('dev.enableFaultInjection')).toBe(true);
   });
 
+  it('ships the webview assets the chat needs', async () => {
+    const ext = vscode.extensions.getExtension('forgeguard-dev.forgeguard');
+    const root = ext?.extensionUri.fsPath ?? '';
+    // The chat loads its script AND its stylesheet from out/webview: a
+    // packaged extension without them renders unstyled.
+    for (const asset of ['main.js', 'styles.css']) {
+      let exists = false;
+      try {
+        await vscode.workspace.fs.stat(vscode.Uri.file(`${root}/out/webview/${asset}`));
+        exists = true;
+      } catch {
+        exists = false;
+      }
+      expect(exists, `missing out/webview/${asset}`).toBe(true);
+    }
+  });
+
   it('registers all ForgeGuard commands', async () => {
     const cmds = await vscode.commands.getCommands(true);
     for (const c of [

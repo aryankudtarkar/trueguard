@@ -196,6 +196,7 @@ function renderToolRow(m: Message & { role: 'tool' }): HTMLElement {
   const head = document.createElement('button');
   head.className = 'toolHead';
   head.setAttribute('aria-expanded', String(!!m.expanded));
+  head.setAttribute('aria-label', `Tool activity: ${m.text}`);
   // Typographic marker only: the webview ships no icon font (PRD 6.2).
   head.textContent = `${m.expanded ? '▾' : '▸'} ${m.text}${m.toolResult ? ' · done' : ' · running'}`;
   head.addEventListener('click', () => {
@@ -286,6 +287,7 @@ function showMentionPicker(files: readonly string[]): void {
     item.className = 'mentionItem';
     item.textContent = file;
     item.setAttribute('role', 'option');
+    item.setAttribute('aria-label', `Mention ${file}`);
     item.addEventListener('click', () => {
       insertMention(file);
       list.remove();

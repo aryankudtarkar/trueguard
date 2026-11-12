@@ -317,7 +317,43 @@
           "description": "Maximum size of the workspace context attached to a message, in bytes."
         }
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "forgeguard.gettingStarted",
+        "title": "Get started with ForgeGuard",
+        "description": "ForgeGuard puts a careful coding agent in your editor. Nothing is written to your files without your review.",
+        "steps": [
+          {
+            "id": "forgeguard.start",
+            "title": "Start TrueForge",
+            "description": "TrueForge is the agent harness ForgeGuard talks to. Start it and the chat becomes usable.\n[Start TrueForge](command:forgeguard.startTrueForge)",
+            "media": "media/forgeguard.svg",
+            "completionEvents": [
+              "onCommand:forgeguard.startTrueForge"
+            ]
+          },
+          {
+            "id": "forgeguard.models",
+            "title": "Add your models",
+            "description": "ForgeGuard needs at least one model. The first one is the primary; the others are the fallbacks used when a provider fails.\n[Open the model settings](command:workbench.action.openSettings?%22forgeguard.models%22)",
+            "media": "media/forgeguard.svg",
+            "completionEvents": [
+              "onCommand:workbench.action.openSettings"
+            ]
+          },
+          {
+            "id": "forgeguard.task",
+            "title": "Try a first task",
+            "description": "Ask for something small. The agent reads your files, proposes a change, and you accept or reject each hunk before anything is written.\n[Open the chat](command:forgeguard.chatView.focus)",
+            "media": "media/forgeguard.svg",
+            "completionEvents": [
+              "onCommand:forgeguard.chatView.focus"
+            ]
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "build": "node esbuild.mjs",
@@ -358,5 +394,13 @@
     "keytar@7.9.0": true,
     "esbuild@0.24.2": true,
     "esbuild@0.21.5": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/forgeguard-dev/forgeguard.git"
+  },
+  "homepage": "https://github.com/forgeguard-dev/forgeguard#readme",
+  "bugs": {
+    "url": "https://github.com/forgeguard-dev/forgeguard/issues"
   }
 }

@@ -116,7 +116,7 @@ export async function applyChanges(request: ApplyRequest, options: ApplierOption
     note = `Applied ${accepted} of ${proposed} changes. One file changed after the proposal and was left alone.`;
   } else if (conflict) {
     status = 'conflict';
-    note = 'A file changed after the agent proposed the edit. Nothing was written to it.';
+    note = 'This file changed after the agent proposed edits. Review again to continue.';
   } else if (!anyAccepted) {
     status = 'rejected';
     note = 'No changes were accepted, so nothing was written.';

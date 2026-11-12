@@ -172,10 +172,11 @@ export class EditService implements vscode.Disposable {
       this.changes.acceptAll(changeSet.id);
       this.changes.transition(changeSet.id, 'reviewPending');
       this.log.info(`review ready: ${changeSet.id} (${proposal.files.length} file(s))`);
+      const hunkCount = proposal.files.reduce((sum, f) => sum + f.hunks.length, 0);
       this.updateEmitter.fire({
         kind: 'pending',
         changeSetId: changeSet.id,
-        summary: `Review ${proposal.files.length} change(s). Nothing is written until you apply.`,
+        summary: `Review ${hunkCount} change${hunkCount === 1 ? '' : 's'}. Nothing is written until you apply.`,
       });
     }
   }

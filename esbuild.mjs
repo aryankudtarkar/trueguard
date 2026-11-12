@@ -1,7 +1,14 @@
 import * as esbuild from 'esbuild';
+import { copyFileSync, mkdirSync } from 'node:fs';
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
+
+/** The webview loads its stylesheet next to the bundled script. */
+function copyWebviewAssets() {
+  mkdirSync('out/webview', { recursive: true });
+  copyFileSync('webview/styles.css', 'out/webview/styles.css');
+}
 
 /** @type {import('esbuild').BuildOptions} */
 const extensionOptions = {
@@ -35,7 +42,9 @@ if (watch) {
   const ctxWeb = await esbuild.context(webviewOptions);
   await ctxExt.watch();
   await ctxWeb.watch();
+  copyWebviewAssets();
 } else {
   await esbuild.build(extensionOptions);
   await esbuild.build(webviewOptions);
+  copyWebviewAssets();
 }
