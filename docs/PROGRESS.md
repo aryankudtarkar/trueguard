@@ -99,4 +99,49 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 | Phase 6 exit gate: an injected 429 completes the turn on the fallback | done | this commit | live, real TrueForge; one calm notice |
 | Phase 6 audit | **PASS** | — | docs/audits/phase-6.md; 4 findings fixed, tag phase-6-audited |
 
-## Next: Phase 7 — inline edit (FR-11, brief Task A)
+## Phase 7 — inline edit (FR-11, brief Task A)
+
+| Task | Status | Commit | Note |
+| --- | --- | --- | --- |
+| Select + keybinding + instruction → agent proposes → diff beside the code | done | fcec9b7 | Cmd/Ctrl+Alt+I; the write still goes through the review |
+| Tests | done | fcec9b7 | unit (the prompt) + integration (the selection) |
+
+## Phase 8 — context assembly (FR-12, brief B1)
+
+| Task | Status | Commit | Note |
+| --- | --- | --- | --- |
+| @-mentions in the composer | done | 04dc7df | type @, pick a file, it becomes a chip |
+| Automatic retrieval, budgeted | done | 04dc7df | only the promising files are read |
+| The user sees what was chosen | done | 04dc7df | `Context: app/x.py (2.1 KB of 16 KB)` |
+| Tests | done | 04dc7df | 20 new tests |
+
+## Phases 9–10 (design polish, onboarding, hardening, packaging)
+
+| Task | Status | Commit | Note |
+| --- | --- | --- | --- |
+| 9.1 design-lint: colors, icons, font sizes, aria labels, reduced motion | done | c7d6e97 | stricter rules; the build fails on a violation |
+| 9.2 Every state in 6.4 / 6.5 | done | c7d6e97 | including the missing "Not configured" |
+| 9.3 Walkthrough (three steps) | done | c7d6e97 | native walkthrough contribution |
+| 9.4 Microcopy pass | done | c7d6e97 | the PRD's sentences |
+| 9.5–9.6 Keyboard, screen readers, themes | done | c7d6e97 | aria labels on every control; theme variables only |
+| 10.1–10.2 README + the quick start | done | c7d6e97 | the owner walks it once before the demo |
+| 10.3 `scripts/demo-prepare.mjs` | done | c7d6e97 | clones the benchmark, writes the prompts |
+| 10.4 `docs/DEMO.md` | done | c7d6e97 | the timed script D1–D5 |
+| 10.5 The `.vsix` | done | c7d6e97 | 328 KB, 11 files |
+| 10.7 `docs/SUBMISSION.md` | done | c7d6e97 | the pitch, the screenshots, the brief mapping |
+| Phases 9–10 audit | **PASS** | — | docs/audits/phase-9-10.md; 8 findings fixed |
+
+## Status: all planned phases are done and audited
+
+| Phase | Tag |
+| --- | --- |
+| 0 Foundations | phase-0-audited |
+| 1 Extension shell and chat | phase-1-audited |
+| 2 Editor MCP server | phase-2-audited |
+| 3 Edit engine | phase-3-audited |
+| 4 Approval gate and review | phase-4-audited |
+| 5 Command execution | phase-5-audited |
+| 6 Failover (G3) | phase-6-audited |
+| 7 Inline edit (FR-11) | this commit |
+| 8 Context assembly (FR-12) | 04dc7df |
+| 9–10 Polish and packaging | this commit |

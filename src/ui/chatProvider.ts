@@ -27,6 +27,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   private chip: { path: string; selection?: { startLine: number; endLine: number } } | null = null;
   private lastServerState = ServerState.Stopped;
   private working = false;
+  private pendingReviews = 0;
   private lastToolRowId: string | undefined;
   /** Merges streamed tool-call fragments (name and arguments arrive apart). */
   private readonly toolCalls = new ToolCallBuffer();
@@ -502,8 +503,21 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       type: 'state',
       serverState: this.lastServerState,
       working: this.working,
-      pendingReviews: 0,
+      pendingReviews: this.pendingReviews,
+      configured: this.hasModels(),
     });
+  }
+
+  /** The number of changes waiting for review (the composer's pill). */
+  setPendingReviews(count: number): void {
+    this.pendingReviews = count;
+    this.postState();
+  }
+
+  /** Is at least one model configured? (the "Not configured" state) */
+  private hasModels(): boolean {
+    const models = vscode.workspace.getConfiguration('forgeguard').get<Array<{ ref?: string }>>('models', []);
+    return models.some((m) => typeof m?.ref === 'string' && m.ref.length > 0);
   }
 
   private post(m: HostToWebviewMessage): void {

@@ -35,6 +35,7 @@ let working = false;
 let chip: ContextChip | null = null;
 let serverState = 'stopped';
 let pendingReviews = 0;
+let configured = true;
 
 function render(): void {
   renderMessages();
@@ -243,9 +244,14 @@ function renderComposer(): void {
   sendBtn.textContent = working ? 'Stop' : 'Send';
   sendBtn.setAttribute('aria-label', working ? 'Stop generating' : 'Send message');
   const offline = serverState !== 'ready';
-  input.disabled = offline;
-  sendBtn.disabled = offline && !working;
-  input.placeholder = offline ? 'TrueForge is not running' : 'Ask ForgeGuard to change code…';
+  const noModel = !configured;
+  input.disabled = offline || noModel;
+  sendBtn.disabled = (offline || noModel) && !working;
+  input.placeholder = noModel
+    ? 'Add a model in Settings (ForgeGuard: Models) to start'
+    : offline
+      ? 'TrueForge is not running'
+      : 'Ask ForgeGuard to change code…';
   modelPill.textContent = pendingReviews > 0 ? `${pendingReviews} to review` : 'model';
 }
 
@@ -333,6 +339,7 @@ window.addEventListener('message', (e: MessageEvent) => {
       serverState = m.serverState;
       working = m.working;
       pendingReviews = m.pendingReviews;
+      configured = m.configured !== false;
       break;
     }
     case 'messages': {

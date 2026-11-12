@@ -57,7 +57,14 @@ export type WebviewToHostMessage =
   | { readonly type: 'mention'; readonly path: string };
 
 export type HostToWebviewMessage =
-  | { readonly type: 'state'; readonly serverState: string; readonly working: boolean; readonly pendingReviews: number }
+  | {
+      readonly type: 'state';
+      readonly serverState: string;
+      readonly working: boolean;
+      readonly pendingReviews: number;
+      /** False when no model is configured yet. */
+      readonly configured?: boolean;
+    }
   | { readonly type: 'messages'; readonly messages: readonly Message[] }
   | { readonly type: 'streamDelta'; readonly messageId: string; readonly text: string }
   | { readonly type: 'notice'; readonly text: string }

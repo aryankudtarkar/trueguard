@@ -271,6 +271,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     const pending = changes.pending();
     const hunks = pending.reduce((sum, c) => sum + c.files.reduce((s, f) => s + f.hunks.length, 0), 0);
     statusBar.setPending(hunks);
+    chatProvider.setPendingReviews(hunks);
     changesTree.refresh();
   }
 
