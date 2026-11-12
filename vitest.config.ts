@@ -16,7 +16,24 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      include: ['src/edits/**', 'src/failover/**', 'src/mcp/**', 'src/util/**'],
+      // The PRD sets a coverage bar on the risky modules. vscodeTools.ts is
+      // excluded on purpose: it only runs against the real VS Code API and is
+      // covered by the integration suite instead.
+      include: [
+        'src/edits/**',
+        'src/failover/**',
+        'src/mcp/tools.ts',
+        'src/mcp/pathGuard.ts',
+        'src/mcp/editorServer.ts',
+        'src/util/truncate.ts',
+        'src/util/jsonCap.ts',
+      ],
+      thresholds: {
+        lines: 85,
+        functions: 85,
+        branches: 80,
+        statements: 85,
+      },
     },
   },
 });

@@ -30,27 +30,55 @@ export function expect(actual: unknown): {
   toBeInstanceOf(cls: new () => unknown): void;
   toMatch(re: RegExp | string): void;
   toBeUndefined(): void;
+  not: {
+    toBe(expected: unknown): void;
+    toContain(expected: unknown): void;
+    toMatch(re: RegExp | string): void;
+    toBeUndefined(): void;
+  };
 } {
-  return {
-    toBe(expected): void {
+  const matchers = {
+    toBe(expected: unknown): void {
       if (actual !== expected) { throw new Error(`expected ${String(expected)} got ${String(actual)}`); }
     },
-    toContain(expected): void {
+    toContain(expected: unknown): void {
       const list = actual as unknown[];
       if (!Array.isArray(list) || !list.includes(expected)) {
         throw new Error(`expected collection to contain ${String(expected)}`);
       }
     },
-    toBeInstanceOf(cls): void {
+    toBeInstanceOf(cls: new () => unknown): void {
       if (!(actual instanceof cls)) { throw new Error(`expected instance of ${String(cls)}`); }
     },
-    toMatch(re): void {
+    toMatch(re: RegExp | string): void {
       const s = String(actual);
       const ok = typeof re === 'string' ? s.includes(re) : re.test(s);
       if (!ok) { throw new Error(`expected ${s} to match ${String(re)}`); }
     },
     toBeUndefined(): void {
       if (actual !== undefined) { throw new Error(`expected undefined got ${String(actual)}`); }
+    },
+  };
+  return {
+    ...matchers,
+    not: {
+      toBe(expected: unknown): void {
+        if (actual === expected) { throw new Error(`expected not ${String(expected)}`); }
+      },
+      toContain(expected: unknown): void {
+        const list = actual as unknown[];
+        if (Array.isArray(list) && list.includes(expected)) {
+          throw new Error(`expected collection not to contain ${String(expected)}`);
+        }
+      },
+      toMatch(re: RegExp | string): void {
+        const s = String(actual);
+        const ok = typeof re === 'string' ? s.includes(re) : re.test(s);
+        if (ok) { throw new Error(`expected ${s} not to match ${String(re)}`); }
+      },
+      toBeUndefined(): void {
+        if (actual === undefined) { throw new Error('expected not undefined'); }
+      },
     },
   };
 }
