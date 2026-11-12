@@ -98,6 +98,8 @@ const server = createServer(async (req, res) => {
 
   if (req.method === 'POST' && p === '/__fault') {
     const body = await readBody(req);
+    const valid = ['429', '503', '401', 'timeout', 'stall'];
+    if (body.mode && !valid.includes(body.mode)) { json(res, 400, { error: { message: `Invalid fault mode: ${body.mode}` } }); return; }
     state.fault = body.mode ?? null;
     json(res, 200, { ok: true, fault: state.fault });
     return;
