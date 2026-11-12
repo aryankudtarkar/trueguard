@@ -60,6 +60,12 @@ function renderMessages(): void {
         el.textContent = m.text;
       } else if (m.role === 'agent' && m.text) {
         el.innerHTML = DOMPurify.sanitize(marked.parse(m.text, { async: false }));
+        if (m.modelLabel) {
+          const label = document.createElement('div');
+          label.className = 'modelLabel secondary';
+          label.textContent = m.modelLabel;
+          el.appendChild(label);
+        }
       } else if (m.role === 'agent') {
         el.textContent = m.streaming ? '…' : '';
         el.classList.add('secondary');

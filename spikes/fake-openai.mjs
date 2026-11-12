@@ -50,6 +50,16 @@ const server = createServer(async (req, res) => {
     });
     const body = JSON.parse(rawBody || '{}');
     const hasToolResult = Array.isArray(body.messages) && body.messages.some((m) => m.role === 'tool');
+    // A model whose name asks for a fault fails that way, so a failover can
+    // be demonstrated with two models on one provider.
+    const modelName = String(body.model ?? '');
+    const modelFault = /fail(429|503|401|500)/.exec(modelName)?.[1];
+    if (modelFault) {
+      const status = Number(modelFault);
+      res.writeHead(status, { 'content-type': 'application/json', ...(status === 429 ? { 'retry-after': '1' } : {}) });
+      res.end(JSON.stringify({ error: { message: `injected ${status} for ${modelName}`, type: 'injected_fault' } }));
+      return;
+    }
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
     const chunk = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
     if (mode === 'call-tool' && !hasToolResult) {

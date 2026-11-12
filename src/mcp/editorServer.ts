@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { logger, redact } from '../util/logger';
+import { ToolCallGuard } from '../util/idempotency';
 import { PathGuard, type ResolvedPath } from './pathGuard';
 import { registerEditorTools, type EditorToolDeps, type ToolRegistrar } from './tools';
 import { registerEditTools, type EditToolDeps } from './editTool';
@@ -34,6 +35,8 @@ export class EditorMcpServer implements vscode.Disposable {
   private disposed = false;
   private readonly endpointEmitter = new vscode.EventEmitter<McpEndpoint>();
   readonly onEndpointChange = this.endpointEmitter.event;
+  /** Remembers the tool calls of the current turn (no duplicated execution). */
+  private readonly guard = new ToolCallGuard();
 
   constructor(
     private readonly deps: EditorToolDeps = vscodeToolDeps(),
@@ -145,19 +148,24 @@ export class EditorMcpServer implements vscode.Disposable {
     // Structural cast: the SDK's registerTool generics instantiate too deep to
     // check against our minimal registrar interface.
     const registrar = server as unknown as ToolRegistrar;
-    registerEditorTools(registrar, {
+    registerEditorTools(guardRegistrar(registrar, this.guard), {
       deps: this.deps,
       // Guard re-resolves the current workspace roots on every call, so folder
       // changes at runtime are honored.
       guard: new GuardProxy(this.deps),
     });
     if (this.editTools) {
-      registerEditTools(registrar, this.editTools);
+      registerEditTools(guardRegistrar(registrar, this.guard), this.editTools);
     }
     if (this.commandTools) {
-      registerCommandTools(registrar, this.commandTools);
+      registerCommandTools(guardRegistrar(registrar, this.guard), this.commandTools);
     }
     return server;
+  }
+
+  /** Forget the tool calls of the previous turn (a new user turn). */
+  resetToolGuard(): void {
+    this.guard.reset();
   }
 
   dispose(): void {
@@ -166,6 +174,21 @@ export class EditorMcpServer implements vscode.Disposable {
     this.server?.close();
     this.endpoint = undefined;
   }
+}
+
+/**
+ * Wrap a registrar so every tool runs at most once per turn: a repeat (the
+ * model asked again after a failover) replays the first result.
+ */
+function guardRegistrar(registrar: ToolRegistrar, guard: ToolCallGuard): ToolRegistrar {
+  return {
+    registerTool(name, def, handler) {
+      registrar.registerTool(name, def, async (args, extra) => {
+        const key = ToolCallGuard.key(name, args);
+        return guard.run(key, () => handler(args, extra));
+      });
+    },
+  };
 }
 
 /**

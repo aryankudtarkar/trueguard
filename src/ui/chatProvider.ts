@@ -56,6 +56,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     if (reviews) {
       this.subscriptions.push(reviews.onUpdate((update) => this.onReviewUpdate(update)));
     }
+    this.subscriptions.push(
+      sessions.onFailover((failover) => {
+        // One calm notice (FR-7), not a stream of them.
+        this.addSystemMessage(failover.notice);
+      }),
+    );
   }
 
   dispose(): void {
@@ -210,7 +216,30 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       this.setWorking(false);
       this.messages = this.messages.filter((msg) => msg.id !== agentId || msg.text !== '');
       this.addSystemMessage(this.friendlyError(e));
+      if (this.isAllModelsDown(e)) {
+        void vscode.window
+          .showErrorMessage('No model is available right now. Retry, or edit your model list.', 'Retry', 'Edit Models')
+          .then((choice) => {
+            if (choice === 'Retry') { void this.retryLast(); }
+            if (choice === 'Edit Models') {
+              void vscode.commands.executeCommand('workbench.action.openSettings', 'forgeguard.models');
+            }
+          });
+      }
     }
+  }
+
+  /** True when every model failed (FR-7). */
+  private isAllModelsDown(e: unknown): boolean {
+    const msg = e instanceof Error ? e.message : String(e);
+    return /no model is available|rate limit|429/i.test(msg);
+  }
+
+  /** Send the last user message again. */
+  private async retryLast(): Promise<void> {
+    const last = [...this.messages].reverse().find((m) => m.role === 'user');
+    if (!last) { return; }
+    await this.sendUserTurn(last.text, []);
   }
 
   private primaryModel(): string {
@@ -239,6 +268,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         // Some servers deliver the whole call in the final message instead.
         this.toolCalls.add(event.tool_calls);
         this.flushToolRows();
+        // The model that produced this answer is shown on the message.
+        const modelName = event.model?.name;
+        if (modelName && agentId) {
+          this.updateMessage(agentId, (m) => ({ ...m, modelLabel: shortModelName(modelName) }));
+        }
         break;
       }
       case 'tool.response': {
@@ -417,6 +451,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   private post(m: HostToWebviewMessage): void {
     void this.view?.webview.postMessage(m);
   }
+}
+
+/** The short name of a model ("gpt-4o-mini" of "openai/gpt-4o-mini"). */
+export function shortModelName(fqn: string): string {
+  const parts = fqn.split('/');
+  return parts.length > 1 ? parts.slice(1).join('/') : fqn;
 }
 
 /** Status chip text for a review (PRD 6.4). */

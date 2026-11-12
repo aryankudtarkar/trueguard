@@ -86,4 +86,17 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 | Phase 5 exit gate: the agent runs a command only after approval | done | b7a6c87 | live, real TrueForge + real VS Code |
 | Phase 5 audit | **PASS** | — | docs/audits/phase-5.md; 5 findings fixed, tag phase-5-audited |
 
-## Next: Phase 6 — failover (G3)
+## Phase 6 (failover — G3)
+
+| Task | Status | Commit | Note |
+| --- | --- | --- | --- |
+| 6.1 ErrorClassifier (table-driven) | done | this commit | 429/5xx/timeout → transient; 401/403/quota → provider-fatal; 400/context → request-fatal |
+| 6.2 FailoverManager: policy, per-turn attempts, 429 backoff (5 s cap), breaker (60 s) | done | this commit | one attempt per model per turn; probe back to the primary |
+| 6.3 Resume strategy (PATCH the session's model, same session) + idempotency guard | done | this commit | a tool that already ran is never run twice |
+| 6.4 UI: inline notice, status bar warning, model label, all-models-down error | done | this commit | Retry + Edit Models actions |
+| 6.5 Dev fault injection (429, 503, timeout, 401) | done | this commit | dev flags only, hidden from the palette |
+| 6.6 Tests: classifier table, state machine, live end-to-end | done | this commit | 34 new tests |
+| Phase 6 exit gate: an injected 429 completes the turn on the fallback | done | this commit | live, real TrueForge; one calm notice |
+| Phase 6 audit | **PASS** | — | docs/audits/phase-6.md; 4 findings fixed, tag phase-6-audited |
+
+## Next: Phase 7 — inline edit (FR-11, brief Task A)

@@ -362,7 +362,14 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
       { placeHolder: 'Choose a change' },
     );
     return picked?.item;
-  }  // Health probe result surfaces through the status bar via onStateChange.
+  }  // The status bar shows the failover state (FR-7).
+  registerDisposable(
+    sessions.onFailover((failover) => {
+      statusBar.setFailover(failover.model);
+    }),
+  );
+
+  // Health probe result surfaces through the status bar via onStateChange.
   registerDisposable(
     server.onStateChange((s) => {
       if (s === ServerState.Ready) { log.info('TrueForge ready'); }
@@ -381,6 +388,38 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
       }
       faults.armCorruptNextWrite();
       void vscode.window.showInformationMessage('The next write will be corrupted on purpose.');
+    }),
+  );
+
+  // Dev-only: inject a provider fault into the fake OpenAI provider, so the
+  // failover can be demonstrated without a real rate limit (demo scenario D2).
+  for (const [mode, label] of [
+    ['fail429', 'a 429 (rate limit)'],
+    ['fail503', 'a 503 (server error)'],
+    ['fail401', 'a 401 (bad credentials)'],
+    ['stall', 'a stalled response'],
+  ] as const) {
+    registerDisposable(
+      vscode.commands.registerCommand(`forgeguard.dev.inject.${mode}`, async () => {
+        if (!devFaultsEnabled()) {
+          void vscode.window.showInformationMessage(
+            'Fault injection is off. Enable "ForgeGuard: Enable Fault Injection" in Settings first.',
+          );
+          return;
+        }
+        const ok = await setFakeProviderMode(mode);
+        void vscode.window.showInformationMessage(
+          ok
+            ? `The fake provider will answer the next call with ${label}.`
+            : 'The fake provider is not running (npm run fake-openai).',
+        );
+      }),
+    );
+  }
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.dev.inject.clear', async () => {
+      const ok = await setFakeProviderMode('echo');
+      void vscode.window.showInformationMessage(ok ? 'Fault injection cleared.' : 'The fake provider is not running.');
     }),
   );
 
@@ -434,6 +473,24 @@ function devFaultsEnabled(): boolean {
   const mode = vscode.env.appName.toLowerCase();
   const devMode = mode.includes('insiders') || mode.includes('dev');
   return devMode || vscode.workspace.getConfiguration('forgeguard').get<boolean>('dev.enableFaultInjection', false);
+}
+
+/**
+ * Switch the fake OpenAI provider to another mode. The provider is the demo
+ * harness (spikes/fake-openai.mjs); a real provider cannot be told to fail.
+ */
+async function setFakeProviderMode(mode: string): Promise<boolean> {
+  try {
+    const res = await fetch('http://127.0.0.1:8799/set-mode', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ mode }),
+      signal: AbortSignal.timeout(2000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 

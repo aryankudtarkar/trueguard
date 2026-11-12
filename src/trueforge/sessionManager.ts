@@ -8,6 +8,7 @@ import {
   type ToolApprovalRequiredEvent,
 } from './schemas';
 import { logger } from '../util/logger';
+import { FailoverManager, type ModelProfile } from '../failover/manager';
 
 export interface StoredSession {
   id: string;
@@ -20,6 +21,16 @@ export interface RecordedToolCall {
   id: string;
   name: string;
   arguments: string;
+}
+
+/** The user-visible failover notice (FR-7: once, calmly). */
+export interface FailoverNotice {
+  /** The sentence shown in the chat. */
+  notice: string;
+  /** The model the turn continues on. */
+  model: string;
+  /** The model that failed. */
+  from?: string;
 }
 
 const MAX_STORED_SESSIONS = 20;
@@ -44,6 +55,11 @@ export class SessionManager implements vscode.Disposable {
   /** Tool calls of the current turn, by id (the approval correlation key). */
   private readonly toolCalls = new Map<string, RecordedToolCall>();
   private readonly toolCallBuffer = new ToolCallBuffer();
+  private readonly failover = new FailoverManager([]);
+  private readonly failoverEmitter = new vscode.EventEmitter<FailoverNotice>();
+  readonly onFailover = this.failoverEmitter.event;
+  /** The error of the last turn, if it failed. */
+  private turnError: string | undefined;
 
   constructor(
     private readonly server: ServerManager,
@@ -129,6 +145,10 @@ export class SessionManager implements vscode.Disposable {
   /**
    * Send a turn and stream validated events to `onEvent`. One active turn per
    * session (concurrency rule); rejects if a turn is already running.
+   *
+   * When the provider fails transiently, the turn continues on the next model
+   * (G3): the session's model is patched and the turn is sent again. At most
+   * one attempt per model per turn.
    */
   async sendTurn(
     input: unknown[],
@@ -146,17 +166,47 @@ export class SessionManager implements vscode.Disposable {
     this.lastModelName = modelName;
     this.toolCalls.clear();
     this.toolCallBuffer.drain();
+    this.failover.setModels(this.configuredModels());
+    this.failover.onTurnStart();
     let cancelled = false;
     try {
       const sessionId = await this.ensureSession(modelName);
-      await this.server.client.sendTurn(sessionId, input, {
-        onEvent: (raw) => {
-          const event = streamingEventSchema.parse(raw); // already validated; belt-and-braces
-          this.recordEvent(event);
-          onEvent(event);
-        },
-        onEnd: () => undefined,
-      }, controller.signal);
+      let attemptModel = modelName;
+      for (;;) {
+        this.turnError = undefined;
+        await this.server.client.sendTurn(sessionId, input, {
+          onEvent: (raw) => {
+            const event = streamingEventSchema.parse(raw); // already validated; belt-and-braces
+            if (event.type === 'turn.done' && event.state.status === 'error') {
+              this.turnError = event.state.message ?? 'the provider failed';
+            }
+            this.recordEvent(event);
+            onEvent(event);
+          },
+          onEnd: () => undefined,
+        }, controller.signal);
+
+        if (!this.turnError) {
+          this.failover.noteSuccess(attemptModel);
+          return;
+        }
+        if (controller.signal.aborted) { return; }
+
+        // The provider failed: try another model (G3).
+        const decision = await this.failover.handleFailure({ message: this.turnError });
+        if (decision.action === 'giveup' || !decision.model) {
+          throw new Error(this.turnError);
+        }
+        const from = this.failover.profiles.find((p) => p.ref === attemptModel)?.label;
+        this.log.warn(`failover: ${this.turnError} → ${decision.model.label}`);
+        await this.server.client.updateSessionModel(sessionId, { name: decision.model.ref });
+        this.failoverEmitter.fire({
+          notice: decision.notice ?? `Switched to ${decision.model.label}.`,
+          model: decision.model.label,
+          ...(from ? { from } : {}),
+        });
+        attemptModel = decision.model.ref;
+      }
     } catch (e) {
       if (controller.signal.aborted) {
         cancelled = true;
@@ -171,6 +221,12 @@ export class SessionManager implements vscode.Disposable {
       }
       this.turnEndedEmitter.fire();
     }
+  }
+
+  /** The configured model profiles (forgeguard.models). */
+  configuredModels(): ModelProfile[] {
+    const models = vscode.workspace.getConfiguration('forgeguard').get<ModelProfile[]>('models', []);
+    return models.filter((m) => typeof m?.ref === 'string' && m.ref.length > 0);
   }
 
   /** Record tool calls and surface the approval gate. */
@@ -225,5 +281,6 @@ export class SessionManager implements vscode.Disposable {
     this.turnStartedEmitter.dispose();
     this.toolCallEmitter.dispose();
     this.approvalEmitter.dispose();
+    this.failoverEmitter.dispose();
   }
 }

@@ -145,6 +145,12 @@ button:disabled { opacity: 0.6; cursor: default; }
   * { transition: none !important; animation: none !important; }
 }
 
+/* The model that produced an agent message */
+.modelLabel {
+  font-size: 0.85em;
+  margin-top: 2px;
+}
+
 /* Command cards (a command waiting for approval, or its result) */
 .msg.command {
   width: 100%;

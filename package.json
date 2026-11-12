@@ -123,6 +123,31 @@
         "command": "forgeguard.dev.corruptNextWrite",
         "title": "ForgeGuard: Dev: Corrupt Next Write",
         "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.dev.inject.fail429",
+        "title": "ForgeGuard: Dev: Inject 429 (rate limit)",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.dev.inject.fail503",
+        "title": "ForgeGuard: Dev: Inject 503 (server error)",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.dev.inject.fail401",
+        "title": "ForgeGuard: Dev: Inject 401 (bad credentials)",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.dev.inject.stall",
+        "title": "ForgeGuard: Dev: Inject a stalled response",
+        "category": "ForgeGuard"
+      },
+      {
+        "command": "forgeguard.dev.inject.clear",
+        "title": "ForgeGuard: Dev: Clear injected faults",
+        "category": "ForgeGuard"
       }
     ],
     "keybindings": [
@@ -194,6 +219,26 @@
         },
         {
           "command": "forgeguard.dev.corruptNextWrite",
+          "when": "false"
+        },
+        {
+          "command": "forgeguard.dev.inject.clear",
+          "when": "false"
+        },
+        {
+          "command": "forgeguard.dev.inject.fail429",
+          "when": "false"
+        },
+        {
+          "command": "forgeguard.dev.inject.fail503",
+          "when": "false"
+        },
+        {
+          "command": "forgeguard.dev.inject.fail401",
+          "when": "false"
+        },
+        {
+          "command": "forgeguard.dev.inject.stall",
           "when": "false"
         }
       ]
