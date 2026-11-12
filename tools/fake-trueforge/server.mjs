@@ -23,6 +23,7 @@ const state = {
   fault: null, // '429'|'503'|'401'|'timeout'|'stall'
   scriptedEvents: null, // array of event objects to stream on next turn
   modelProviders: [],
+  mcpServers: new Map(), // name -> manifest
   sessions: new Map(),
   turnCounter: 0,
 };
@@ -111,11 +112,34 @@ const server = createServer(async (req, res) => {
     return;
   }
   if (req.method === 'POST' && p === '/__reset') {
-    state.fault = null; state.scriptedEvents = null; state.sessions.clear();
+    state.fault = null; state.scriptedEvents = null; state.sessions.clear(); state.mcpServers.clear();
     json(res, 200, { ok: true });
     return;
   }
 
+  if (p === '/api/v1/settings/mcp-servers' && req.method === 'GET') {
+    json(res, 200, { data: [...state.mcpServers.keys()].map((name) => ({ name })) });
+    return;
+  }
+  if (p === '/api/v1/settings/mcp-servers' && (req.method === 'POST' || req.method === 'PUT')) {
+    const body = await readBody(req);
+    const m = body.manifest;
+    if (!m || m.type !== 'remote' || typeof m.name !== 'string' || typeof m.url !== 'string') {
+      json(res, 400, { error: { message: 'manifest must be remote {name,url}' } });
+      return;
+    }
+    if (req.method === 'POST' && state.mcpServers.has(m.name)) {
+      json(res, 409, { error: { message: `MCP server already registered: ${m.name}` } });
+      return;
+    }
+    if (req.method === 'PUT' && !state.mcpServers.has(m.name)) {
+      json(res, 404, { error: { message: `MCP server not registered: ${m.name}` } });
+      return;
+    }
+    state.mcpServers.set(m.name, m);
+    json(res, 201, { data: { name: m.name, manifest: m } });
+    return;
+  }
   if (p === '/api/v1/users') { json(res, 200, { data: { id: 'fake-user' } }); return; }
   if (p === '/api/v1/settings/model-providers' && req.method === 'POST') {
     const body = await readBody(req);

@@ -139,7 +139,12 @@
         "forgeguard.toolOutputCapBytes": {
           "type": "integer",
           "default": 16384,
-          "description": "Maximum size of a single tool result returned to the agent."
+          "description": "Maximum size of a single tool result returned to the agent, in bytes."
+        },
+        "forgeguard.allowSecretReads": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow the agent to read secret-looking files (.env, *.pem, id_rsa) inside the workspace."
         },
         "forgeguard.commandTimeoutSec": {
           "type": "integer",
@@ -160,7 +165,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src webview test tools scripts --max-warnings 0",
     "test:unit": "vitest run --config vitest.config.ts",
-    "test:int": "node scripts/build-integration.mjs && node scripts/test-integration.mjs",
+    "test:int": "npm run build && node scripts/build-integration.mjs && node scripts/test-integration.mjs",
     "design-lint": "node scripts/design-lint.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test:unit && npm run test:int && npm run design-lint",
     "package": "vsce package",

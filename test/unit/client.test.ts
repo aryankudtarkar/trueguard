@@ -89,4 +89,20 @@ describe('TrueForgeClient against fake-trueforge', () => {
     // Stream is torn down; no exception escapes, end callback fired via finally
     expect(events.length).toBeLessThanOrEqual(5);
   });
+
+  it('upserts the MCP connector: POST when new, PUT when it exists', async () => {
+    const manifest = {
+      type: 'remote' as const,
+      name: 'forgeguard-editor',
+      url: 'http://127.0.0.1:45821/mcp',
+      auth: { type: 'header' as const, headers: { authorization: 'Bearer tok' } },
+    };
+    await client.upsertMcpServer(manifest); // POST -> 201
+    await client.upsertMcpServer({ ...manifest, url: 'http://127.0.0.1:45822/mcp' }); // PUT -> 201
+    const names = await client.listMcpServers();
+    expect(names).toContain('forgeguard-editor');
+    const res = await fetch(`${BASE}/api/v1/settings/mcp-servers`);
+    const body = (await res.json()) as { data: Array<{ name: string }> };
+    expect(body.data).toHaveLength(1); // not duplicated
+  });
 });

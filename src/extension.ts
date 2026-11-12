@@ -1,16 +1,32 @@
 import * as vscode from 'vscode';
+import { EditorMcpServer, MCP_SERVER_NAME } from './mcp/editorServer';
 import { ServerManager, ServerState } from './trueforge/serverManager';
 import { SessionManager } from './trueforge/sessionManager';
 import { ChatViewProvider } from './ui/chatProvider';
 import { StatusBar } from './ui/statusBar';
-import { logger } from './util/logger';
+import { logger, redact } from './util/logger';
 
 export function activate(context: vscode.ExtensionContext): void {
   const log = logger();
   log.info('ForgeGuard activating');
 
   const server = new ServerManager(context);
-  const sessions = new SessionManager(server, context);
+  const editor = new EditorMcpServer();
+  const sessions = new SessionManager(server, context, () => {
+    const ep = editor.getEndpoint();
+    if (!ep) { return []; }
+    return [
+      {
+        name: MCP_SERVER_NAME,
+        enable_tools: ['@all'],
+        // Every Phase 2 tool is read-only: no approval gate, the agent may use
+        // them freely. Phase 4 adds propose_edit/run_command with explicit
+        // approval selectors.
+        require_approval_for_tools: [],
+        preload: true,
+      },
+    ];
+  });
 
   const chatProvider = new ChatViewProvider(
     vscode.Uri.joinPath(context.extensionUri, 'out', 'webview').fsPath,
@@ -33,6 +49,43 @@ export function activate(context: vscode.ExtensionContext): void {
   registerDisposable(server);
   registerDisposable(sessions);
   registerDisposable(statusBar);
+  registerDisposable(editor);
+
+  // The editor MCP server listens on loopback from activation; the connector
+  // is registered with TrueForge whenever both sides are up, and re-registered
+  // when the MCP port changes (FR-3).
+  let registeredUrl: string | undefined;
+  async function registerConnector(): Promise<void> {
+    const ep = editor.getEndpoint();
+    if (!ep || server.getState() !== ServerState.Ready) { return; }
+    if (registeredUrl === ep.url) { return; }
+    try {
+      await server.client.upsertMcpServer({
+        type: 'remote',
+        name: MCP_SERVER_NAME,
+        url: ep.url,
+        description: 'ForgeGuard editor tools: read-only workspace access from the agent.',
+        auth: { type: 'header', headers: { authorization: `Bearer ${ep.token}` } },
+      });
+      registeredUrl = ep.url;
+      log.info(`connector registered: ${MCP_SERVER_NAME} at ${ep.url}`);
+    } catch (e) {
+      log.warn(`connector registration failed: ${redact(String(e))}`);
+    }
+  }
+
+  registerDisposable(editor.onEndpointChange(() => { void registerConnector(); }));
+  registerDisposable(
+    server.onStateChange((state) => {
+      // A restarted TrueForge forgets its connectors: force a fresh registration.
+      if (state !== ServerState.Ready) { registeredUrl = undefined; }
+      void registerConnector();
+    }),
+  );
+  void editor
+    .start()
+    .then(() => registerConnector())
+    .catch((e) => log.warn(`editor MCP server failed to start: ${redact(String(e))}`));
 
   // Commands
   registerDisposable(

@@ -25,7 +25,11 @@ export class SessionManager implements vscode.Disposable {
   private readonly turnStartedEmitter = new vscode.EventEmitter<void>();
   readonly onTurnStarted = this.turnStartedEmitter.event;
 
-  constructor(private readonly server: ServerManager, private readonly context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly server: ServerManager,
+    private readonly context: vscode.ExtensionContext,
+    private readonly mcpServers?: () => Array<Record<string, unknown>>,
+  ) {}
 
   private stored(): StoredSession[] {
     return this.context.workspaceState.get<StoredSession[]>(SESSIONS_KEY) ?? [];
@@ -45,9 +49,11 @@ export class SessionManager implements vscode.Disposable {
 
   async ensureSession(modelName: string): Promise<string> {
     if (this.activeSessionId) { return this.activeSessionId; }
+    const mcpServers = this.mcpServers?.() ?? [];
     const session = await this.server.client.createSession({
       model: { name: modelName },
       instructions: 'You are ForgeGuard, a careful coding agent inside VS Code.',
+      ...(mcpServers.length ? { mcp_servers: mcpServers } : {}),
     });
     this.activeSessionId = session.id;
     this.persist(session.id, `Session ${new Date().toLocaleString()}`);

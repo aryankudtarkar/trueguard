@@ -7,6 +7,7 @@ import {
   type SessionDto,
   type StreamingEvent,
 } from './schemas';
+import { z } from 'zod';
 
 /**
  * Typed client over the verified TrueForge HTTP API (no SDK exists; see
@@ -73,6 +74,38 @@ export class TrueForgeClient {
     } catch (e) {
       logger().warn(redact(`cancel failed: ${String(e)}`));
     }
+  }
+
+  /** List registered MCP server names (cheap idempotency check for the connector). */
+  async listMcpServers(): Promise<string[]> {
+    const res = await fetch(this.url('/settings/mcp-servers'), { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) { throw new TrueForgeError(res.status, await safeErrorBody(res)); }
+    const parsed = apiEnvelopeSchema.parse(await res.json());
+    return z.array(z.object({ name: z.string().min(1) }).passthrough()).catch([])
+      .transform((items) => items.map((i) => i.name))
+      .parse(parsed.data);
+  }
+
+  /**
+   * Register (or update) the editor MCP connector with TrueForge so sessions
+   * can reference it by name. PUT when it exists, POST otherwise.
+   */
+  async upsertMcpServer(manifest: {
+    type: 'remote';
+    name: string;
+    url: string;
+    description?: string;
+    auth?: { type: 'header'; headers: Record<string, string> };
+  }): Promise<void> {
+    const names = await this.listMcpServers().catch(() => [] as string[]);
+    const method = names.includes(manifest.name) ? 'PUT' : 'POST';
+    const res = await fetch(this.url('/settings/mcp-servers'), {
+      method,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ manifest }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) { throw new TrueForgeError(res.status, await safeErrorBody(res)); }
   }
 
   /**
