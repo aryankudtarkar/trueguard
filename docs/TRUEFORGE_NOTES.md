@@ -67,6 +67,50 @@ turn.done.
 
 ## Remaining UNKNOWNs (block nothing before Phase 1)
 
-- Live SSE framing details (Spike 1) — event: lines, keepalive, reconnect semantics.
-- Real 429/401 error payload from a provider (Spike 4 fault injection).
-- Whether `propose_edit` round-trips faster via MCP tool + approval gate vs `user.tool_response` resume (Spike 2/3 decide; both paths exist).
+- Real 429/401 provider error payloads (fake-openai fault modes implemented; classifier tests use them).
+- Whether `propose_edit` round-trips faster via MCP tool + approval gate vs `user.tool_response` resume (both paths exist; Phase 4 decides).
+
+## Spike results (2026-11-12, live against the running server)
+
+All transcripts in docs/spikes/. The agent loop ran on a **fake OpenAI-compatible
+provider** (spikes/fake-openai.mjs) registered as a `custom` model provider — no
+real API keys needed.
+
+### Spike 1 — hello (docs/spikes/hello-transcript.md)
+- `POST /api/v1/sessions` → 201, returns `{data: {id, agent: {type:'inline', spec}, …}}`.
+- `POST /api/v1/sessions/{id}/turns` (stream=true) → 200 `text/event-stream`.
+- SSE framing: `data: {json}\n\n` with optional `id: N` line per event.
+- Event sequence: `turn.created` → `model.message` (header w/ model+params) → `model.message.delta`* (with final delta carrying `finish_reason` + `usage`) → `turn.done` (state.output = full message, metrics).
+- Usage includes `input_tokens_breakdown {harness, skills, instructions, tool_definitions, messages}`.
+
+### Spike 2 — mcp-echo (docs/spikes/mcp-echo-transcript.md)
+- MCP server (official SDK 1.32.2, `StreamableHTTPServerTransport`, stateless mode,
+  fresh McpServer per request) registered via `POST /api/v1/settings/mcp-servers`.
+- `mcp.initialize` event on turn start: `{mcp_servers: [{name, transport_type:'streamable-http'}]}`.
+- Tool schemas loaded (`preload: true`); tool call executed by the harness; result
+  came back as `tool.response` event with content `{content:[{type:'text',text:…}]}`.
+
+### Spike 3 — approval (docs/spikes/approval-allow-transcript.md, approval-deny-transcript.md)
+- With `mcp_servers: [{name, require_approval_for_tools:['@all'], preload:true}]`:
+  - Turn 1: `turn.created` → `mcp.initialize` → `model.message.delta` (tool_calls) →
+    **`tool.approval_required`** `{thread_id, tool_calls:[{id, source_event_id}]}` → `turn.done`
+    with `state.required_actions` repeating the same payload. Turn PAUSES.
+  - Allow decision = **new turn** on the same session with input
+    `{type:'user.tool_approval', thread_id, tool_call_id, approval:{status:'allow'}}`.
+    Then the harness executes the tool (exactly once) and emits `tool.response`.
+  - Deny with reason: `{approval:{status:'deny', reason}}` → agent receives tool
+    result `{"error":"User denied tool call: <reason>"}`.
+- **Correlation key verified: `tool_call_id` (+ `thread_id`)** — this keys the DecisionStore.
+
+### Spike 4 — failover (docs/spikes/failover-transcript.md)
+- Session on `bad-provider/bad-model` (base_url port 9): turn SSE ends with
+  `turn.done {"state":{"status":"error","message":"[Model Error] Cannot connect to API: bad port"}}`.
+  **The turn ends with an error event, HTTP stays 200** — the extension classifies
+  from the turn.done error, not just HTTP status.
+- `PATCH /api/v1/sessions/{id}` with `{agent:{spec:{model:{name:'fake-provider/test-model'}}}}`
+  → 200, `agent.spec.model.name` switched.
+- New turn on the **same session** succeeds on the fallback model.
+- **Chosen failover strategy (preferred, per PRD): PATCH the session's model, then
+  send a new turn on the same session.** No condensed-transcript reseed needed.
+- Iteration limit reached (stateless fake model looped): turn.done error message
+  "You have reached iteration limit of 512, please request again" — status `error`.
