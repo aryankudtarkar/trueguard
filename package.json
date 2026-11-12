@@ -115,6 +115,11 @@
         "category": "ForgeGuard"
       },
       {
+        "command": "forgeguard.inlineEdit",
+        "title": "ForgeGuard: Inline Edit Selection",
+        "category": "ForgeGuard"
+      },
+      {
         "command": "forgeguard.review.openDiff",
         "title": "ForgeGuard: Open Diff",
         "category": "ForgeGuard"
@@ -170,6 +175,11 @@
         "command": "forgeguard.rejectHunk",
         "key": "ctrl+shift+alt+r",
         "mac": "cmd+shift+alt+r"
+      },
+      {
+        "command": "forgeguard.inlineEdit",
+        "key": "ctrl+alt+i",
+        "mac": "cmd+alt+i"
       }
     ],
     "menus": {

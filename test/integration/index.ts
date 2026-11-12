@@ -7,6 +7,7 @@ import './gitignore-probe.test';
 import './edits.test';
 import './review.test';
 import './failover.test';
+import './inline-edit.test';
 
 export async function run(): Promise<void> {
   // The extension activates automatically (activationEvents); give it a beat.

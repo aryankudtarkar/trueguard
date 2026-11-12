@@ -36,6 +36,8 @@ export class EventEmitter<T> {
 }
 
 export const workspace = {
+  /** The path relative to the workspace folder (a test stand-in). */
+  asRelativePath: (p: string) => p.replace(/^.*?\/(?=src\/)/, ''),
   // Optional per-test overrides keyed "section.key"; missing keys fall through
   // to the provided default.
   configOverrides: new Map<string, unknown>(),

@@ -12,6 +12,7 @@ import { ServerManager, ServerState } from './trueforge/serverManager';
 import { SessionManager } from './trueforge/sessionManager';
 import { ChatViewProvider } from './ui/chatProvider';
 import { StatusBar } from './ui/statusBar';
+import { runInlineEdit } from './ui/inlineEdit';
 import { logger, redact } from './util/logger';
 
 export interface ForgeGuardApi {
@@ -460,6 +461,53 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     vscode.commands.registerCommand('forgeguard.denyPendingApprovals', async () => {
       await editService.denyAllPending('The turn was stopped.');
       refreshPending();
+    }),
+  );
+
+  // A new turn forgets the tool calls of the previous one (idempotency guard).
+  registerDisposable(
+    sessions.onTurnStarted(() => {
+      editor.resetToolGuard();
+    }),
+  );
+
+  // --- Inline edit (FR-11) ------------------------------------------------
+
+  /** The inline request waiting for its review (the diff opens when it lands). */
+  let inlineRequest: { path: string; changeSetId?: string } | undefined;
+
+  registerDisposable(
+    vscode.commands.registerCommand('forgeguard.inlineEdit', async () => {
+      await runInlineEdit({
+        sessions,
+        model: () => {
+          const cfg = vscode.workspace.getConfiguration('forgeguard');
+          const models = cfg.get<Array<{ id: string; label: string; ref: string }>>('models', []);
+          const idx = cfg.get<number>('activeModelIndex', 0);
+          return models[idx]?.ref ?? models[0]?.ref ?? 'openai/gpt-4o-mini';
+        },
+        onRequest: (selection) => {
+          inlineRequest = { path: selection.path };
+        },
+      });
+    }),
+  );
+
+  // When the review of an inline edit arrives, open the diff beside the code.
+  registerDisposable(
+    editService.onUpdate((update) => {
+      if (update.kind !== 'pending' || !inlineRequest) { return; }
+      const changeSet = changes.get(update.changeSetId);
+      const file = changeSet?.files.find((f) => f.path === inlineRequest?.path);
+      if (!changeSet || !file) { return; }
+      const target = inlineRequest;
+      inlineRequest = undefined;
+      void vscode.commands.executeCommand(
+        'vscode.diff',
+        vscode.Uri.file(target.path),
+        proposedUri(changeSet.id, target.path),
+        `${target.path} (proposed)`,
+      );
     }),
   );
 
