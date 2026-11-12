@@ -10,10 +10,53 @@ export const window = {
     show: () => undefined,
     dispose: () => undefined,
   }),
+  activeEditorListeners: [] as Array<(editor: unknown) => void>,
+  // Test hook: dispatch an active-editor change to subscribers
+  fireActiveEditor(editor: unknown): void {
+    for (const l of [...window.activeEditorListeners]) { l(editor); }
+  },
+  onDidChangeActiveTextEditor(listener: (editor: unknown) => void): { dispose(): void } {
+    window.activeEditorListeners.push(listener);
+    return { dispose: () => { window.activeEditorListeners = window.activeEditorListeners.filter((l) => l !== listener); } };
+  },
 };
 
+export class EventEmitter<T> {
+  private listeners: Array<(v: T) => void> = [];
+  readonly event = (listener: (v: T) => void): { dispose(): void } => {
+    this.listeners.push(listener);
+    return { dispose: () => { this.listeners = this.listeners.filter((l) => l !== listener); } };
+  };
+  fire(value: T): void {
+    for (const l of [...this.listeners]) { l(value); }
+  }
+  dispose(): void {
+    this.listeners = [];
+  }
+}
+
 export const workspace = {
-  getConfiguration: () => ({ get: (_k: string, d: unknown) => d }),
+  // Optional per-test overrides keyed "section.key"; missing keys fall through
+  // to the provided default.
+  configOverrides: new Map<string, unknown>(),
+  getConfiguration(section?: string): { get(key: string, d: unknown): unknown } {
+    return {
+      get: (key: string, d: unknown) => {
+        const full = section ? `${section}.${key}` : key;
+        return workspace.configOverrides.get(full) ?? d;
+      },
+    };
+  },
+};
+
+export const Uri = {
+  file(p: string): { fsPath: string; toString(): string } {
+    return { fsPath: p, toString: () => `file://${p}` };
+  },
+  joinPath(uri: { fsPath: string; toString(): string }, ...parts: string[]): { fsPath: string; toString(): string } {
+    const fsPath = [uri.fsPath, ...parts.map(String)].join('/');
+    return { fsPath, toString: () => `${uri.toString()}/${parts.join('/')}` };
+  },
 };
 
 export const commands = {};

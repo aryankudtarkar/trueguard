@@ -29,6 +29,7 @@ export function activate(context: vscode.ExtensionContext): void {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
+  registerDisposable(chatProvider);
   registerDisposable(server);
   registerDisposable(sessions);
   registerDisposable(statusBar);

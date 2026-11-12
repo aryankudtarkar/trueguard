@@ -56,3 +56,16 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 - **Choice:** build in place at `~/Desktop/trueguard`; package name stays
   `forgeguard` (publisher `forgeguard-dev`), matching PRD defaults.
 - **Consequence:** none beyond path naming.
+
+## 2026-11-12 — Task 1.4 "reconnect with backoff" interpretation (R12 default)
+
+- **Context:** the verified TrueForge API has no mid-turn SSE resume endpoint for
+  inline sessions (docs/TRUEFORGE_NOTES.md — subscribe replays a past turn, it
+  does not attach to a live one).
+- **Choice:** reconnect-with-backoff is implemented at the server-state level:
+  when health probes fail, ServerManager polls with capped exponential backoff
+  (1s → 2s → 4s … 10s) and flips back to Ready when TrueForge answers. A turn
+  whose connection drops mid-stream surfaces as a turn error instead of
+  silently resuming.
+- **Consequence:** "a TrueForge restart is survived without a stuck UI" (FR-2 AC)
+  is met via state recovery; stream-level resume stays out of scope.

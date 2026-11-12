@@ -4,22 +4,29 @@ import { type SessionManager } from '../trueforge/sessionManager';
 
 /**
  * The single ForgeGuard status bar item (left side).
- * Idle: $(shield) ForgeGuard · Working: $(loading~spin) Working ·
- * Pending: $(eye) N to review · Failover: $(warning) Model · Offline: $(error) TrueForge offline
+ * Offline: $(error) TrueForge offline · Starting: $(loading~spin) ·
+ * Working: $(loading~spin) Working · Failover: $(warning) Model ·
+ * Pending: $(eye) N to review · Idle: $(shield) ForgeGuard
  */
 export class StatusBar implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem;
+  private readonly subscriptions: vscode.Disposable[] = [];
+  private readonly sessions: SessionManager;
   private pending = 0;
   private failoverLabel: string | undefined;
   private lastState: ServerState = ServerState.Stopped;
 
   constructor(server: ServerManager, sessions: SessionManager) {
+    this.sessions = sessions;
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    server.onStateChange((state) => {
-      this.lastState = state;
-      this.render();
-    });
-    sessions.onTurnEnded(() => this.render());
+    this.subscriptions.push(
+      server.onStateChange((state) => {
+        this.lastState = state;
+        this.render();
+      }),
+      sessions.onTurnStarted(() => this.render()),
+      sessions.onTurnEnded(() => this.render()),
+    );
     this.render();
     this.item.show();
   }
@@ -46,6 +53,11 @@ export class StatusBar implements vscode.Disposable {
       this.item.backgroundColor = undefined;
       this.item.tooltip = 'TrueForge is starting…';
       this.item.command = undefined;
+    } else if (this.sessions.isTurnRunning()) {
+      this.item.text = '$(loading~spin) Working';
+      this.item.backgroundColor = undefined;
+      this.item.tooltip = 'ForgeGuard is streaming a turn. Click to stop it.';
+      this.item.command = 'forgeguard.stopTurn';
     } else if (this.failoverLabel) {
       this.item.text = `$(warning) ${this.failoverLabel}`;
       this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
@@ -65,6 +77,7 @@ export class StatusBar implements vscode.Disposable {
   }
 
   dispose(): void {
+    for (const d of this.subscriptions) { d.dispose(); }
     this.item.dispose();
   }
 }

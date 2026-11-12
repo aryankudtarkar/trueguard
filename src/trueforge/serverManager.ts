@@ -22,6 +22,8 @@ export class ServerManager implements vscode.Disposable {
 
   private state: ServerState = ServerState.Stopped;
   private child: ChildProcess | undefined;
+  private pollTimer: NodeJS.Timeout | undefined;
+  private disposed = false;
   private readonly log = logger();
 
   readonly client: TrueForgeClient;
@@ -46,12 +48,54 @@ export class ServerManager implements vscode.Disposable {
     this.log.info(`TrueForge state: ${next}`);
     void this.context.workspaceState.update(SERVER_STATE_KEY, next);
     this.stateEmitter.fire(next);
+    if (next === ServerState.Ready) {
+      this.clearPoll();
+    } else if (next === ServerState.Stopped || next === ServerState.Failed) {
+      this.scheduleReconnect();
+    }
+  }
+
+  /**
+   * Reconnect with capped exponential backoff: while offline (and not disposed
+   * or starting), probe health until TrueForge answers, then flip to Ready.
+   * Keeps the UI from being stuck Offline after an external server restart
+   * (FR-2 AC: a TrueForge restart is survived).
+   */
+  private scheduleReconnect(): void {
+    if (this.disposed || this.pollTimer) { return; }
+    let delay = 1000;
+    const attempt = async (): Promise<void> => {
+      this.pollTimer = undefined;
+      if (this.disposed || this.state !== ServerState.Stopped) { return; }
+      if (await this.client.health(2000)) {
+        this.setState(ServerState.Ready);
+        return;
+      }
+      delay = Math.min(delay * 2, 10_000);
+      this.pollTimer = setTimeout(() => void attempt(), delay);
+      this.pollTimer.unref?.();
+    };
+    this.pollTimer = setTimeout(() => void attempt(), delay);
+    this.pollTimer.unref?.();
+  }
+
+  private clearPoll(): void {
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = undefined;
+    }
   }
 
   /** One-shot health probe at activation; does not spawn. */
   private async checkHealth(): Promise<void> {
     const ok = await this.client.health();
-    this.setState(ok ? ServerState.Ready : ServerState.Stopped);
+    if (ok) {
+      this.setState(ServerState.Ready);
+    } else {
+      // setState no-ops Stopped→Stopped, so schedule the reconnect poll here
+      this.setState(ServerState.Stopped);
+      this.scheduleReconnect();
+    }
   }
 
   /** Spawn `npx @truefoundry/trueforge@latest` as a child process. */
@@ -110,6 +154,8 @@ export class ServerManager implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.disposed = true;
+    this.clearPoll();
     void this.stop();
     this.stateEmitter.dispose();
   }

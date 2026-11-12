@@ -1,14 +1,17 @@
 import * as vscode from 'vscode';
-import type { HostToWebviewMessage, Message, WebviewToHostMessage } from '../../webview/protocol';
+import type { HostToWebviewMessage, Message } from '../../webview/protocol';
+import { webviewToHostMessageSchema, type WebviewToHostParsed } from './chatProtocolSchemas';
 import { type ServerManager, ServerState } from '../trueforge/serverManager';
 import { type SessionManager } from '../trueforge/sessionManager';
+import { logger } from '../util/logger';
 import type { StreamingEvent } from '../trueforge/schemas';
 
 /**
  * Host side of the chat webview: CSP-hardened HTML, typed message protocol,
- * streaming render state, context chip for the active file.
+ * streaming render state, context chip for the active file. Messages from the
+ * webview are untrusted input: zod-validated, invalid ones dropped.
  */
-export class ChatViewProvider implements vscode.WebviewViewProvider {
+export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = 'forgeguard.chatView';
 
   private view: vscode.WebviewView | undefined;
@@ -19,24 +22,31 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   private chip: { path: string; selection?: { startLine: number; endLine: number } } | null = null;
   private lastServerState = ServerState.Stopped;
   private working = false;
+  private readonly subscriptions: vscode.Disposable[] = [];
 
   constructor(
     private readonly webviewRoot: string, // out/webview — built webview assets
     server: ServerManager,
     private readonly sessions: SessionManager,
   ) {
-    server.onStateChange((state) => {
-      this.lastServerState = state;
-      this.postState();
-      if (state === ServerState.Failed) { this.addSystemMessage('ForgeGuard can not reach TrueForge. Start it, or check the address in Settings.'); }
-    });
-    sessions.onTurnEnded(() => this.setWorking(false));
+    this.subscriptions.push(
+      server.onStateChange((state) => {
+        this.lastServerState = state;
+        this.postState();
+        if (state === ServerState.Failed) { this.addSystemMessage('ForgeGuard can not reach TrueForge. Start it, or check the address in Settings.'); }
+      }),
+      sessions.onTurnEnded(() => this.setWorking(false)),
+      // Track active file/selection for the context chip
+      vscode.window.onDidChangeActiveTextEditor((editor) => {
+        this.chip = editor ? this.chipFor(editor) : null;
+        this.post({ type: 'chip', chip: this.chip });
+      }),
+    );
+  }
 
-    // Track active file/selection for the context chip
-    vscode.window.onDidChangeActiveTextEditor((editor) => {
-      this.chip = editor ? this.chipFor(editor) : null;
-      this.post({ type: 'chip', chip: this.chip });
-    });
+  dispose(): void {
+    if (this.flushTimer) { clearTimeout(this.flushTimer); this.flushTimer = undefined; }
+    for (const d of this.subscriptions) { d.dispose(); }
   }
 
   private chipFor(editor: vscode.TextEditor): { path: string; selection?: { startLine: number; endLine: number } } | null {
@@ -58,7 +68,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     view.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.file(this.webviewRoot)] };
     const nonce = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('');
     view.webview.html = this.html(nonce);
-    view.webview.onDidReceiveMessage((m: WebviewToHostMessage) => this.onMessage(m));
+    view.webview.onDidReceiveMessage((m: unknown) => {
+      const parsed = webviewToHostMessageSchema.safeParse(m);
+      if (!parsed.success) {
+        // Untrusted input: drop, log at debug, never act
+        logger().debug(`dropped invalid webview message: ${parsed.error.message.slice(0, 200)}`);
+        return;
+      }
+      void this.onMessage(parsed.data);
+    });
   }
 
   private html(nonce: string): string {
@@ -80,7 +98,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 </html>`;
   }
 
-  private async onMessage(m: WebviewToHostMessage): Promise<void> {
+  private async onMessage(m: WebviewToHostParsed): Promise<void> {
     switch (m.type) {
       case 'ready': {
         this.postState();

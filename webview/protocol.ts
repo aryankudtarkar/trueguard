@@ -1,6 +1,7 @@
 // Typed message protocol between the extension host and the chat webview.
-// Both sides validate with zod (webview side: minimal structural checks;
-// host side: full zod schemas in src/ui/chatProtocolSchemas.ts).
+// The host validates every webview→host message with zod
+// (src/ui/chatProtocolSchemas.ts) before acting on it; host→webview messages
+// come from our own host code. Agent markdown is sanitized in the webview.
 
 export interface ContextChip {
   readonly path: string; // workspace-relative

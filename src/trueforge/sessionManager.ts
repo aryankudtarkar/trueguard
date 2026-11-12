@@ -22,6 +22,8 @@ export class SessionManager implements vscode.Disposable {
   private turnAbort: AbortController | undefined;
   private readonly turnEndedEmitter = new vscode.EventEmitter<void>();
   readonly onTurnEnded = this.turnEndedEmitter.event;
+  private readonly turnStartedEmitter = new vscode.EventEmitter<void>();
+  readonly onTurnStarted = this.turnStartedEmitter.event;
 
   constructor(private readonly server: ServerManager, private readonly context: vscode.ExtensionContext) {}
 
@@ -74,11 +76,14 @@ export class SessionManager implements vscode.Disposable {
     if (this.turnAbort) { throw new Error('a turn is already running'); }
     if (this.server.getState() !== ServerState.Ready) { throw new Error('TrueForge is not running'); }
 
-    const sessionId = await this.ensureSession(modelName);
+    // Claim the slot synchronously (before any await) so two concurrent calls
+    // cannot both pass the one-turn guard.
     const controller = new AbortController();
     this.turnAbort = controller;
+    this.turnStartedEmitter.fire();
     let cancelled = false;
     try {
+      const sessionId = await this.ensureSession(modelName);
       await this.server.client.sendTurn(sessionId, input, {
         onEvent: (raw) => {
           const event = streamingEventSchema.parse(raw); // already validated; belt-and-braces
@@ -94,9 +99,9 @@ export class SessionManager implements vscode.Disposable {
       }
     } finally {
       this.turnAbort = undefined;
-      if (cancelled) {
+      if (cancelled && this.activeSessionId) {
         // Stop means the server turn is cancelled too (FR-2: within 1s)
-        void this.server.client.cancelSession(sessionId);
+        void this.server.client.cancelSession(this.activeSessionId);
       }
       this.turnEndedEmitter.fire();
     }
@@ -119,5 +124,6 @@ export class SessionManager implements vscode.Disposable {
   dispose(): void {
     this.turnAbort?.abort();
     this.turnEndedEmitter.dispose();
+    this.turnStartedEmitter.dispose();
   }
 }

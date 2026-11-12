@@ -22,10 +22,12 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 | 1.1 extension.ts + contributes | done | c1facbf | container, 2 views, 7 commands, keybindings, settings, viewsWelcome |
 | 1.2 Logger, zod schemas, hashing/mutex/SSE utils | done | c1facbf | |
 | 1.3 ServerManager + viewsWelcome | done | c1facbf | spawn/health/stop/state events |
-| 1.4 TrueForgeClient (HTTP/SSE, zod, abort) | done | c1facbf | no SDK exists → HTTP API |
-| 1.5 SessionManager | done | c1facbf | create/send/stop, 20-session persistence |
-| 1.6 Chat webview | done | c1facbf | CSP+nonce, sanitized markdown, batched render, chip, Send/Stop |
-| 1.7 Status bar item | done | c1facbf | idle/working/offline/pending |
-| 1.8 Tests unit + integration | done | c1facbf | 19 unit vs fake server; 2 int in real VS Code |
-| Phase 1 exit gate: real streaming + Stop on real TrueForge | todo | — | manual smoke with real provider |
-| Phase 1 audit | todo | — | after smoke |
+| 1.4 TrueForgeClient (HTTP/SSE, zod, abort) | done | c1facbf | no SDK exists → HTTP API; reconnect backoff added in audit |
+| 1.5 SessionManager | done | c1facbf | create/send/stop, 20-session persistence, sync one-turn guard |
+| 1.6 Chat webview | done | c1facbf | CSP+nonce, sanitized markdown, batched render, chip, Send/Stop; zod-validated webview messages |
+| 1.7 Status bar item | done | c1facbf | offline/starting/working/failover/pending/idle |
+| 1.8 Tests unit + integration | done | c1facbf | 26 unit (incl. 5 new negatives) vs fake server; 2 int in real VS Code |
+| Phase 1 exit gate: real streaming + Stop on real TrueForge | done | c731545 | automated live tests (fake-provider/test-model); abort+cancel < 1.1 s |
+| Phase 1 audit | **PASS** | — | docs/audits/phase-1.md; 6 findings fixed, tag phase-1-audited |
+
+## Next: Phase 2 — editor MCP server + read-only tools
