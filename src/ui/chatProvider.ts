@@ -4,7 +4,11 @@ import { webviewToHostMessageSchema, type WebviewToHostParsed } from './chatProt
 import { type ServerManager, ServerState } from '../trueforge/serverManager';
 import { type SessionManager } from '../trueforge/sessionManager';
 import { type EditService, type ReviewUpdate } from '../review/editService';
-import { logger } from '../util/logger';
+import { logger, redact } from '../util/logger';
+import { findFilesForMention } from '../context/mentions';
+import { describeContext, formatContext, retrieveContext } from '../context/retriever';
+import type { ContextProvider } from '../context/workspaceContext';
+import { listFiles as listWorkspaceFiles } from '../mcp/vscodeTools';
 import { ToolCallBuffer, type StreamingEvent } from '../trueforge/schemas';
 
 /**
@@ -39,6 +43,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     server: ServerManager,
     private readonly sessions: SessionManager,
     private readonly reviews?: EditService,
+    private readonly contextProvider?: ContextProvider,
   ) {
     this.subscriptions.push(
       server.onStateChange((state) => {
@@ -163,6 +168,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         void vscode.commands.executeCommand('forgeguard.reviewNextChange');
         break;
       }
+      case 'mentionFiles': {
+        const files = await this.listMentionCandidates(m.query);
+        this.post({ type: 'mentionFilesResult', files });
+        break;
+      }
+      case 'mention': {
+        // The user picked a file: it becomes a context chip.
+        this.chip = { path: m.path };
+        this.post({ type: 'chip', chip: this.chip });
+        break;
+      }
       case 'approveCommand': {
         await this.reviews?.approveCommand(m.toolCallId);
         break;
@@ -197,8 +213,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
 
   private async sendUserTurn(text: string, chips: readonly { path: string; selection?: { startLine: number; endLine: number } }[]): Promise<void> {
     if (!text.trim() || this.working) { return; }
+
+    // Context assembly (FR-12): the mentions the user typed, plus the files
+    // that match the message — within a visible budget.
+    const mentioned = chips.map((c) => c.path);
+    const contextBlock = await this.buildContext(text, mentioned);
     const contextLines = chips.map((c) => (c.selection ? `${c.path} (lines ${c.selection.startLine}-${c.selection.endLine})` : c.path));
-    const full = contextLines.length ? `${text}\n\nContext: ${contextLines.join(', ')}` : text;
+    const parts = [text];
+    if (contextLines.length) { parts.push(`Context: ${contextLines.join(', ')}`); }
+    if (contextBlock.text) { parts.push(contextBlock.text); }
+    const full = parts.join('\n\n');
+
     this.messages.push({ id: `u${Date.now()}`, role: 'user', text });
     const agentId = `a${Date.now()}`;
     this.messages.push({ id: agentId, role: 'agent', text: '', streaming: true });
@@ -208,6 +233,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.seenToolCalls.clear();
     this.post({ type: 'messages', messages: this.messages });
     this.setWorking(true);
+    if (contextBlock.summary) { this.addSystemMessage(contextBlock.summary); }
 
     const input = [{ type: 'user.message', content: full }];
     try {
@@ -240,6 +266,38 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     const last = [...this.messages].reverse().find((m) => m.role === 'user');
     if (!last) { return; }
     await this.sendUserTurn(last.text, []);
+  }
+
+  /**
+   * Assemble the context for a message: the files the user mentioned and the
+   * files that match it, within the budget. The user sees what was chosen.
+   */
+  private async buildContext(
+    text: string,
+    mentioned: readonly string[],
+  ): Promise<{ text: string; summary: string }> {
+    const provider = this.contextProvider;
+    if (!provider) { return { text: '', summary: '' }; }
+    try {
+      const candidates = await provider.candidates(text);
+      const context = retrieveContext(text, candidates, provider.budgetBytes());
+      const summary = describeContext(context, mentioned);
+      return { text: formatContext(context, mentioned), summary };
+    } catch (e) {
+      logger().warn(`context assembly failed: ${redact(String(e))}`);
+      return { text: '', summary: '' };
+    }
+  }
+
+  /** The workspace files the user can mention. */
+  async listMentionCandidates(query: string): Promise<string[]> {
+    try {
+      const files = await listWorkspaceFiles(undefined, 2000);
+      return findFilesForMention(files, query, 20);
+    } catch (e) {
+      logger().warn(`mention lookup failed: ${redact(String(e))}`);
+      return [];
+    }
   }
 
   private primaryModel(): string {

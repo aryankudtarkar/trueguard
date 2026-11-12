@@ -51,11 +51,15 @@ export type WebviewToHostMessage =
   | { readonly type: 'switchModel' }
   | { readonly type: 'openReview' }
   | { readonly type: 'approveCommand'; readonly toolCallId: string }
-  | { readonly type: 'denyCommand'; readonly toolCallId: string };
+  | { readonly type: 'mentionFiles'; readonly query: string }
+  | { readonly type: 'mentionFilesResult'; readonly files: readonly string[] }
+  | { readonly type: 'denyCommand'; readonly toolCallId: string }
+  | { readonly type: 'mention'; readonly path: string };
 
 export type HostToWebviewMessage =
   | { readonly type: 'state'; readonly serverState: string; readonly working: boolean; readonly pendingReviews: number }
   | { readonly type: 'messages'; readonly messages: readonly Message[] }
   | { readonly type: 'streamDelta'; readonly messageId: string; readonly text: string }
   | { readonly type: 'notice'; readonly text: string }
-  | { readonly type: 'chip'; readonly chip: ContextChip | null };
+  | { readonly type: 'chip'; readonly chip: ContextChip | null }
+  | { readonly type: 'mentionFilesResult'; readonly files: readonly string[] };

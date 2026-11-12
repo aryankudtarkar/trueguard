@@ -257,6 +257,44 @@ function sendMessage(): void {
   void vscode.postMessage({ type: 'send', text, chips });
 }
 
+/**
+ * @-mentions (FR-12): when the composer sees an "@", the host is asked for
+ * the matching workspace files; the user picks one and it becomes a chip.
+ */
+async function requestMentionFiles(query: string): Promise<void> {
+  await vscode.postMessage({ type: 'mentionFiles', query });
+}
+
+function insertMention(path: string): void {
+  const value = input.value;
+  const at = value.lastIndexOf('@');
+  if (at >= 0) {
+    input.value = `${value.slice(0, at)}${path} ${value.slice(value.indexOf(' ', at) + 1)}`;
+  }
+  input.focus();
+  void vscode.postMessage({ type: 'mention', path });
+}
+
+function showMentionPicker(files: readonly string[]): void {
+  if (!files.length) { return; }
+  const list = document.createElement('div');
+  list.className = 'mentionList';
+  list.setAttribute('role', 'listbox');
+  list.setAttribute('aria-label', 'Files to mention');
+  for (const file of files) {
+    const item = document.createElement('button');
+    item.className = 'mentionItem';
+    item.textContent = file;
+    item.setAttribute('role', 'option');
+    item.addEventListener('click', () => {
+      insertMention(file);
+      list.remove();
+    });
+    list.appendChild(item);
+  }
+  chipRow.before(list);
+}
+
 sendBtn.addEventListener('click', () => {
   if (working) { void vscode.postMessage({ type: 'stop' }); return; }
   sendMessage();
@@ -273,7 +311,14 @@ function autosize(): void {
   input.style.height = 'auto';
   input.style.height = `${Math.min(input.scrollHeight, 140)}px`;
 }
-input.addEventListener('input', autosize);
+input.addEventListener('input', () => {
+  autosize();
+  const value = input.value;
+  const at = value.lastIndexOf('@');
+  if (at >= 0 && !value.slice(at).includes(' ')) {
+    void requestMentionFiles(value.slice(at + 1));
+  }
+});
 
 modelPill.addEventListener('click', () => {
   void vscode.postMessage({ type: 'switchModel' });
@@ -298,6 +343,10 @@ window.addEventListener('message', (e: MessageEvent) => {
     }
     case 'chip': {
       chip = m.chip;
+      break;
+    }
+    case 'mentionFilesResult': {
+      if (m.files.length) { showMentionPicker(m.files); }
       break;
     }
   }

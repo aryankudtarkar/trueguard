@@ -121,7 +121,8 @@ export function globToRegExp(glob: string): RegExp {
   return new RegExp(`^${out.replace(/\/$/, '')}(/|$)`);
 }
 
-async function listFiles(glob: string | undefined, maxResults: number): Promise<string[]> {
+/** The workspace files (respecting .gitignore), relative to the workspace. */
+export async function listFiles(glob: string | undefined, maxResults: number): Promise<string[]> {
   const folders = vscode.workspace.workspaceFolders ?? [];
   const out: string[] = [];
   for (const folder of folders) {

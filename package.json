@@ -310,6 +310,11 @@
           "type": "boolean",
           "default": false,
           "description": "Enable development fault-injection commands (429, 503, timeout, 401)."
+        },
+        "forgeguard.contextBudgetBytes": {
+          "type": "integer",
+          "default": 16384,
+          "description": "Maximum size of the workspace context attached to a message, in bytes."
         }
       }
     }

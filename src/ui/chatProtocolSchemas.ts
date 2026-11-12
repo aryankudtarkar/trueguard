@@ -28,6 +28,8 @@ export const webviewToHostMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('openReview') }),
   z.object({ type: z.literal('approveCommand'), toolCallId: z.string().min(1) }),
   z.object({ type: z.literal('denyCommand'), toolCallId: z.string().min(1) }),
+  z.object({ type: z.literal('mentionFiles'), query: z.string().max(200) }),
+  z.object({ type: z.literal('mention'), path: z.string().min(1).max(400) }),
 ]);
 
 export type WebviewToHostParsed = z.infer<typeof webviewToHostMessageSchema>;

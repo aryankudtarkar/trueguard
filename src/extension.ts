@@ -13,6 +13,7 @@ import { SessionManager } from './trueforge/sessionManager';
 import { ChatViewProvider } from './ui/chatProvider';
 import { StatusBar } from './ui/statusBar';
 import { runInlineEdit } from './ui/inlineEdit';
+import { workspaceContextProvider } from './context/workspaceContext';
 import { logger, redact } from './util/logger';
 
 export interface ForgeGuardApi {
@@ -55,6 +56,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     server,
     sessions,
     editService,
+    workspaceContextProvider(),
   );
   const statusBar = new StatusBar(server, sessions);
 
