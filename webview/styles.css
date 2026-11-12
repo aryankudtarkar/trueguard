@@ -144,3 +144,32 @@ button:disabled { opacity: 0.6; cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Tool activity rows (collapsed by default) */
+.msg.tool {
+  background: var(--vscode-sideBar-background);
+  border: var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 2px 8px;
+  align-self: stretch;
+}
+
+.msg.tool .toolHead {
+  background: transparent;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9em;
+  text-align: left;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.msg.tool .toolHead:hover { color: var(--vscode-foreground); }
+
+.msg.tool .toolBody { max-height: 240px; overflow: auto; }
+.msg.tool .toolBody pre {
+  margin: 2px 0;
+  font-size: 0.85em;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

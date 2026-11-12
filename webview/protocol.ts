@@ -10,11 +10,16 @@ export interface ContextChip {
 
 export interface Message {
   readonly id: string;
-  readonly role: 'user' | 'agent' | 'system';
-  /** For user/system: plain text. For agent: markdown to render sanitized. */
+  readonly role: 'user' | 'agent' | 'system' | 'tool';
+  /** For user/system: plain text. For agent: markdown to render sanitized. For tool: name. */
   readonly text: string;
   readonly streaming?: boolean;
   readonly modelLabel?: string;
+  /** Tool rows: call arguments and result, collapsed by default in the UI. */
+  readonly toolCallId?: string;
+  readonly toolArgs?: string;
+  readonly toolResult?: string;
+  readonly expanded?: boolean;
 }
 
 export type WebviewToHostMessage =

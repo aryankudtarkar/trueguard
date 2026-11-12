@@ -45,6 +45,9 @@ function render(): void {
 function renderMessages(): void {
   msgList.replaceChildren(
     ...messages.map((m) => {
+      if (m.role === 'tool') {
+        return renderToolRow(m);
+      }
       const el = document.createElement('div');
       el.className = `msg ${m.role}${m.streaming ? ' streaming' : ''}`;
       if (m.role === 'user') {
@@ -61,6 +64,35 @@ function renderMessages(): void {
     }),
   );
   msgList.scrollTop = msgList.scrollHeight;
+}
+
+/** Collapsed tool-activity row with expandable details. */
+function renderToolRow(m: Message & { role: 'tool' }): HTMLElement {
+  const el = document.createElement('div');
+  el.className = `msg tool${m.expanded ? ' expanded' : ''}`;
+  const head = document.createElement('button');
+  head.className = 'toolHead';
+  head.setAttribute('aria-expanded', String(!!m.expanded));
+  // Typographic marker only: the webview ships no icon font (PRD 6.2).
+  head.textContent = `${m.expanded ? '▾' : '▸'} ${m.text}${m.toolResult ? ' · done' : ' · running'}`;
+  head.addEventListener('click', () => {
+    void vscode.postMessage({ type: 'toggleTool', messageId: m.id });
+  });
+  el.appendChild(head);
+  if (m.expanded) {
+    const body = document.createElement('div');
+    body.className = 'toolBody secondary';
+    if (m.toolArgs) {
+      const argsEl = document.createElement('pre');
+      argsEl.textContent = `args: ${m.toolArgs}`;
+      body.appendChild(argsEl);
+    }
+    const resEl = document.createElement('pre');
+    resEl.textContent = m.toolResult ? `result: ${m.toolResult}` : 'result: (pending)';
+    body.appendChild(resEl);
+    el.appendChild(body);
+  }
+  return el;
 }
 
 function renderChip(): void {
