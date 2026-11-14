@@ -407,10 +407,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/forgeguard-dev/forgeguard.git"
+    "url": "https://github.com/aryankudtarkar/trueguard.git"
   },
-  "homepage": "https://github.com/forgeguard-dev/forgeguard#readme",
+  "homepage": "https://github.com/aryankudtarkar/trueguard#readme",
   "bugs": {
-    "url": "https://github.com/forgeguard-dev/forgeguard/issues"
+    "url": "https://github.com/aryankudtarkar/trueguard/issues"
   }
 }

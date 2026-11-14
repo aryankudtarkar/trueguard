@@ -59,10 +59,10 @@ and verifies every write.
 
 ## Links
 
-- Repository: `<fill in>`
+- Repository: https://github.com/aryankudtarkar/trueguard
 - Demo video: `<fill in>`
-- TrueForge: https://github.com/truefoundry/trueforge
 - Extension marketplace (if published): `<fill in>`
+- TrueForge: https://github.com/truefoundry/trueforge
 
 ## How the brief's tasks are covered
 
