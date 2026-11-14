@@ -102,12 +102,3 @@ export async function configureProviders(deps: ConfigureProvidersDeps): Promise<
   }
   return result;
 }
-
-/** The keys that are stored (the values never leave this function). */
-export async function storedProviderKeys(secrets: vscode.SecretStorage): Promise<Record<string, boolean>> {
-  const out: Record<string, boolean> = {};
-  for (const preset of PROVIDER_PRESETS) {
-    out[preset.id] = Boolean(await secrets.get(preset.secretKey));
-  }
-  return out;
-}

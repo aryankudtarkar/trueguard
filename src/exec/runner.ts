@@ -1,5 +1,4 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import * as os from 'node:os';
 
 /**
  * Process runner (Phase 5.2).
@@ -157,9 +156,4 @@ export function cancelProcess(child: ChildProcess): void {
   } catch {
     try { child.kill('SIGKILL'); } catch { /* already gone */ }
   }
-}
-
-/** A short description of the platform, for the logs. */
-export function platformNote(): string {
-  return `${os.platform()} ${os.release()}`;
 }

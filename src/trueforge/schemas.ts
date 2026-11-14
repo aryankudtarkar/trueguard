@@ -32,6 +32,12 @@ export const modelMessageEventSchema = z.object({
   model: modelSchema.optional(),
 });
 
+export interface ExtractedToolCall {
+  id: string | undefined;
+  name: string;
+  arguments: string | undefined;
+}
+
 /** Verified shape of one tool call (docs/reference/trueforge-openapi-*.json). */
 export const toolCallSchema = z.object({
   id: z.string().min(1).optional(),
@@ -51,31 +57,6 @@ export const toolCallDeltaSchema = z.object({
     .passthrough()
     .optional(),
 });
-
-export interface ExtractedToolCall {
-  id: string | undefined;
-  name: string;
-  arguments: string | undefined;
-}
-
-/**
- * Pull the tool calls out of a model.message event. Unknown shapes are
- * skipped, never thrown: a malformed call must not break the stream.
- */
-export function extractToolCalls(event: { tool_calls?: unknown }): ExtractedToolCall[] {
-  if (!Array.isArray(event.tool_calls)) { return []; }
-  const out: ExtractedToolCall[] = [];
-  for (const raw of event.tool_calls) {
-    const parsed = toolCallSchema.safeParse(raw);
-    if (!parsed.success) { continue; }
-    out.push({
-      id: parsed.data.id,
-      name: parsed.data.function.name,
-      arguments: parsed.data.function.arguments,
-    });
-  }
-  return out;
-}
 
 /**
  * Accumulates streamed tool-call fragments into complete calls.

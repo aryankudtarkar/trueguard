@@ -19,9 +19,20 @@ see. The agent loop runs on TrueForge; the trust runs here.
 
 ## Quick start
 
-**First time? Read [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)** — it
-walks through the whole first run, including what you should see and what to
-do when nothing happens.
+**First time? Read [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)** — the
+complete first run, step by step: what to type, what you should see, and what
+to do when nothing happens.
+
+The short version:
+
+```bash
+npm install
+npm run dev        # starts TrueForge + a keyless model provider, registers it
+```
+
+Then in VS Code: open the folder, press <kbd>F5</kbd>, click the TrueGuard
+shield in the Activity Bar. If anything looks wrong, run
+**TrueGuard: Check Setup** — it tells you what is missing and offers the fix.
 
 Requires Node 22+, VS Code 1.93+ and a TrueForge server.
 

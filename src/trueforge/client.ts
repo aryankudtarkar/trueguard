@@ -101,9 +101,8 @@ export class TrueForgeClient {
     const res = await fetch(this.url('/settings/model-providers'), { signal: AbortSignal.timeout(5000) });
     if (!res.ok) { throw new TrueForgeError(res.status, await safeErrorBody(res)); }
     const parsed = apiEnvelopeSchema.parse(await res.json());
-    return z.array(z.object({ name: z.string().min(1) }).passthrough()).catch([])
-      .transform((items) => items.map((i) => i.name))
-      .parse(parsed.data);
+    const items = z.array(z.object({ name: z.string().min(1) }).passthrough()).safeParse(parsed.data);
+    return items.success ? items.data.map((i) => i.name) : [];
   }
 
   /**
@@ -150,9 +149,8 @@ export class TrueForgeClient {
     const res = await fetch(this.url('/settings/mcp-servers'), { signal: AbortSignal.timeout(5000) });
     if (!res.ok) { throw new TrueForgeError(res.status, await safeErrorBody(res)); }
     const parsed = apiEnvelopeSchema.parse(await res.json());
-    return z.array(z.object({ name: z.string().min(1) }).passthrough()).catch([])
-      .transform((items) => items.map((i) => i.name))
-      .parse(parsed.data);
+    const items = z.array(z.object({ name: z.string().min(1) }).passthrough()).safeParse(parsed.data);
+    return items.success ? items.data.map((i) => i.name) : [];
   }
 
   /**

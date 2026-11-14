@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ToolCallBuffer, extractToolCalls } from '../../src/trueforge/schemas';
+import { ToolCallBuffer } from '../../src/trueforge/schemas';
 import { toolLabel } from '../../src/ui/chatProvider';
 
 /**
@@ -42,20 +42,6 @@ describe('tool call buffer', () => {
     buf.add([{ index: 0, id: 'a', function: { name: 'read_file', arguments: '{}' } }]);
     expect(buf.drain().length).toBe(1);
     expect(buf.drain().length).toBe(0);
-  });
-});
-
-describe('extractToolCalls', () => {
-  it('reads a complete tool call from a model.message event', () => {
-    const calls = extractToolCalls({
-      tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'read_file', arguments: '{}' } }],
-    });
-    expect(calls[0]?.name).toBe('read_file');
-  });
-
-  it('skips unknown shapes', () => {
-    expect(extractToolCalls({ tool_calls: [{ nope: true }] })).toEqual([]);
-    expect(extractToolCalls({})).toEqual([]);
   });
 });
 

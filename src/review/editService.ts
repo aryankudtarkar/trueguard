@@ -4,7 +4,7 @@ import { applyChanges, type ApplyResult, type EditorBridge } from '../edits/appl
 import { buildProposal, type ProposalContext } from '../edits/proposal';
 import { ChangeStore } from '../edits/store';
 import { MutexMap } from '../util/mutex';
-import { logger, redact } from '../util/logger';
+import { logger } from '../util/logger';
 import type { SessionManager } from '../trueforge/sessionManager';
 import type { ToolApprovalRequiredEvent } from '../trueforge/schemas';
 import { DecisionStore, type ApprovalDecision } from './decisionStore';
@@ -539,11 +539,4 @@ export class EditService implements vscode.Disposable {
 /** One-line summary of the proposal errors, for the agent. */
 export function describeProposalErrors(errors: ReadonlyArray<{ path: string; message: string }>): string {
   return errors.map((e) => `${e.path}: ${e.message}`).join(' ');
-}
-
-/** Log-safe rendering of an apply result (no file contents). */
-export function summarizeResult(result: ApplyResult): string {
-  return redact(
-    result.files.map((f) => `${f.path}: ${f.hunksAccepted}/${f.hunksProposed}${f.verified ? ' verified' : ''}`).join(', '),
-  );
 }

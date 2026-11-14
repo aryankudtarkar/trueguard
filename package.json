@@ -55,6 +55,11 @@
     ],
     "commands": [
       {
+        "command": "trueguard.checkSetup",
+        "title": "TrueGuard: Check Setup",
+        "category": "TrueGuard"
+      },
+      {
         "command": "trueguard.startTrueForge",
         "title": "TrueGuard: Start TrueForge",
         "category": "TrueGuard"
@@ -419,6 +424,15 @@
         "description": "TrueGuard puts a careful coding agent in your editor. Nothing is written to your files without your review.",
         "steps": [
           {
+            "id": "trueguard.check",
+            "title": "Check that everything is ready",
+            "description": "One command tells you whether TrueForge, the models and the editor tools are ready \u2014 and what to do if they are not.\n[Check the setup](command:trueguard.checkSetup)",
+            "media": "media/trueguard.svg",
+            "completionEvents": [
+              "onCommand:trueguard.checkSetup"
+            ]
+          },
+          {
             "id": "trueguard.start",
             "title": "Start TrueForge",
             "description": "TrueForge is the agent harness TrueGuard talks to. Start it and the chat becomes usable.\n[Start TrueForge](command:trueguard.startTrueForge)",
@@ -470,7 +484,9 @@
     "package": "vsce package --no-dependencies",
     "trueforge": "npx @truefoundry/trueforge@latest",
     "setup": "node scripts/setup-trueforge.mjs",
-    "fake-trueforge": "node tools/fake-trueforge/server.mjs"
+    "fake-trueforge": "node tools/fake-trueforge/server.mjs",
+    "dev": "node scripts/dev.mjs",
+    "fake-provider": "node spikes/fake-openai.mjs"
   },
   "devDependencies": {
     "@types/node": "22.10.2",

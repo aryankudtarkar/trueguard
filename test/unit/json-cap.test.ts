@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { capJson, elideString } from '../../src/util/jsonCap';
-import { truncateMiddle } from '../../src/util/truncate';
 
 describe('capJson', () => {
   it('leaves a small payload untouched', () => {
@@ -41,26 +40,5 @@ describe('elideString', () => {
     expect(out).toContain('END');
     expect(out).toContain('chars elided');
     expect(out.length).toBeLessThan(100);
-  });
-});
-
-describe('truncateMiddle', () => {
-  it('returns the input untouched under the cap', () => {
-    const res = truncateMiddle('hello', 1024);
-    expect(res.truncated).toBe(false);
-    expect(res.text).toBe('hello');
-  });
-
-  it('elides the middle of an over-cap text with a marker', () => {
-    const res = truncateMiddle('x'.repeat(5000), 1000);
-    expect(res.truncated).toBe(true);
-    expect(res.text).toContain('TrueGuard: output truncated');
-    expect(res.text.length).toBeLessThan(1400);
-  });
-
-  it('never splits a multi-byte character', () => {
-    const text = '😀'.repeat(2000);
-    const res = truncateMiddle(text, 1000);
-    expect(res.text).not.toContain('�');
   });
 });

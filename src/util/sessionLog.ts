@@ -1,6 +1,5 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { createHash } from 'node:crypto';
 
 /**
  * Session event log (FR-8).
@@ -124,9 +123,4 @@ export class SessionLog {
   countFor(sessionId: string): number {
     return this.written.get(sessionId) ?? 0;
   }
-}
-
-/** A short, stable id for a payload (for the log's index). */
-export function payloadId(data: unknown): string {
-  return createHash('sha256').update(JSON.stringify(data ?? null)).digest('hex').slice(0, 12);
 }

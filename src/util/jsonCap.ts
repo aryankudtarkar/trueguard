@@ -1,4 +1,3 @@
-import { truncateMiddle } from './truncate';
 
 /**
  * Byte-capped JSON payloads (FR-9).
@@ -136,9 +135,4 @@ export function capJson(value: unknown, maxBytes: number): CappedJson {
     }),
     truncated: true,
   };
-}
-
-/** Convenience wrapper for raw (non-JSON) text payloads. */
-export function capText(text: string, maxBytes: number): { text: string; truncated: boolean } {
-  return truncateMiddle(text, maxBytes);
 }

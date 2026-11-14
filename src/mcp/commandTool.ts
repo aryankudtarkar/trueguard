@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { describeRisky, findRiskyPatterns } from '../exec/risky';
+
 import { runCommand, type RunResult } from '../exec/runner';
+import { findRiskyPatterns } from '../exec/risky';
 import { runTool, type ToolRegistrar, type ToolResult } from './tools';
 
 /**
@@ -121,9 +122,4 @@ export function toAgentResult(result: RunResult): Record<string, unknown> {
     truncated: result.truncated,
     output: result.output,
   };
-}
-
-/** Human summary of a risky command, for the approval card. */
-export function riskyNote(command: string): string {
-  return describeRisky(findRiskyPatterns(command));
 }

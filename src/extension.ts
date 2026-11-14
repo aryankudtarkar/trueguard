@@ -3,6 +3,7 @@ import { resolveCommandCwd } from './exec/cwd';
 import { SessionLog } from './util/sessionLog';
 import { configureProviders } from './providers/setup';
 import { MODES, PROVIDER_PRESETS, defaultModelsFor } from './providers/presets';
+import { runDoctor, showDoctor } from './ui/doctor';
 import * as path from 'node:path';
 import { EditorMcpServer, MCP_SERVER_NAME } from './mcp/editorServer';
 import { FaultHook } from './edits/faults';
@@ -17,7 +18,7 @@ import { ServerManager, ServerState } from './trueforge/serverManager';
 import { SessionManager } from './trueforge/sessionManager';
 import { ChatViewProvider } from './ui/chatProvider';
 import { StatusBar } from './ui/statusBar';
-import { runInlineEdit } from './ui/inlineEdit';
+import { INLINE_EDIT_COMMAND, runInlineEdit } from './ui/inlineEdit';
 import { workspaceContextProvider } from './context/workspaceContext';
 import { logger, redact } from './util/logger';
 
@@ -246,6 +247,23 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
       await configureProviders({ client: server.client, secrets: context.secrets });
       await applyDefaultModeModels();
       await sessions.refreshModels();
+    }),
+  );
+
+  // The setup doctor: one command tells the user what is missing.
+  registerDisposable(
+    vscode.commands.registerCommand('trueguard.checkSetup', async () => {
+      const checks = await runDoctor({
+        serverUp: () => server.client.health(2000),
+        models: () => server.client.listAvailableModels(),
+        editorServerUp: () => editor.getEndpoint() !== undefined,
+        connectorRegistered: async () => {
+          const names = await server.client.listMcpServers().catch(() => [] as string[]);
+          return names.includes(MCP_SERVER_NAME);
+        },
+        activeModels: () => sessions.configuredModels(),
+      });
+      await showDoctor(checks);
     }),
   );
 
@@ -587,7 +605,7 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
   let inlineRequest: { path: string; changeSetId?: string } | undefined;
 
   registerDisposable(
-    vscode.commands.registerCommand('trueguard.inlineEdit', async () => {
+    vscode.commands.registerCommand(INLINE_EDIT_COMMAND, async () => {
       await runInlineEdit({
         sessions,
         // The model of the active mode, so an inline edit uses the same

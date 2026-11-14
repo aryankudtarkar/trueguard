@@ -6,7 +6,7 @@ import { type SessionManager } from '../trueforge/sessionManager';
 import { type EditService, type ReviewUpdate } from '../review/editService';
 import { MODES, modeById } from '../providers/presets';
 import { logger, redact } from '../util/logger';
-import { findFilesForMention } from '../context/mentions';
+import { findFilesForMention, stripMentions } from '../context/mentions';
 import { describeContext, formatContext, retrieveContext } from '../context/retriever';
 import type { ContextProvider } from '../context/workspaceContext';
 import { listFiles as listWorkspaceFiles } from '../mcp/vscodeTools';
@@ -271,7 +271,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       if (c.symbol) { return `${c.symbol.name} (${c.symbol.kind}) in ${c.path}:${c.symbol.line}`; }
       return c.selection ? `${c.path} (lines ${c.selection.startLine}-${c.selection.endLine})` : c.path;
     });
-    const parts = [text];
+    // The agent gets the context, not the "@file" shorthand: the mentions are
+    // resolved into the context block below.
+    const forTheAgent = stripMentions(text);
+    const parts = [forTheAgent || text];
     if (contextLines.length) { parts.push(`Context: ${contextLines.join(', ')}`); }
     if (contextBlock.text) { parts.push(contextBlock.text); }
     const full = parts.join('\n\n');
