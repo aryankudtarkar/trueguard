@@ -128,4 +128,3 @@ Full details, including the verified TrueForge API, are in
 MIT. Built from scratch for the TrueFoundry Forge-a-thon (Techfest 2026-27).
 It is not a fork of any other extension; the only third-party runtime
 dependencies are the MCP SDK, zod, jsdiff, marked and DOMPurify.
-# trueguard
