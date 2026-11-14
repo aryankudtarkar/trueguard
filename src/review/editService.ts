@@ -9,6 +9,7 @@ import type { SessionManager } from '../trueforge/sessionManager';
 import type { ToolApprovalRequiredEvent } from '../trueforge/schemas';
 import { DecisionStore, type ApprovalDecision } from './decisionStore';
 import { findRiskyPatterns } from '../exec/risky';
+import { CheckpointStore, hasDiverged, hashOf, type CheckpointFile } from '../edits/checkpoints';
 import { runCommandSchema } from '../mcp/commandTool';
 
 /**
@@ -53,7 +54,7 @@ export const proposeEditSchema = z.object({
 export type ProposeEditInput = z.infer<typeof proposeEditSchema>;
 
 export interface ReviewUpdate {
-  kind: 'pending' | 'applied' | 'rejected' | 'conflict' | 'failed' | 'command';
+  kind: 'pending' | 'applied' | 'rejected' | 'conflict' | 'failed' | 'command' | 'reverted';
   changeSetId: string;
   summary: string;
   /** For command reviews: the exact command and its risky patterns. */
@@ -80,6 +81,10 @@ export class EditService implements vscode.Disposable {
   private readonly subscriptions: vscode.Disposable[] = [];
   /** Commands waiting for the user's approval, by tool call id. */
   private readonly pendingCommands = new Map<string, PendingCommand>();
+  /** The checkpoints that make a change set revertible (FR-10). */
+  private readonly checkpoints: CheckpointStore;
+  /** Change set id → checkpoint id. */
+  private readonly checkpointByChangeSet = new Map<string, string>();
 
   constructor(
     private readonly sessions: SessionManager,
@@ -88,9 +93,11 @@ export class EditService implements vscode.Disposable {
     changes: ChangeStore,
     decisions: DecisionStore,
     private readonly decisionWaitMs: number = TOOL_DECISION_WAIT_MS,
+    checkpoints?: CheckpointStore,
   ) {
     this.changes = changes;
     this.decisions = decisions;
+    this.checkpoints = checkpoints ?? new CheckpointStore();
     this.subscriptions.push(
       this.changes.onEvent((event) => {
         this.updateEmitter.fire({
@@ -113,6 +120,11 @@ export class EditService implements vscode.Disposable {
   /** The decision store (the MCP handler reads it). */
   get decisionStore(): DecisionStore {
     return this.decisions;
+  }
+
+  /** The checkpoint store (FR-10). */
+  get checkpointStore(): CheckpointStore {
+    return this.checkpoints;
   }
 
   /**
@@ -273,6 +285,13 @@ export class EditService implements vscode.Disposable {
       };
     });
 
+    // The snapshot of what is on disk right now: the checkpoint that makes
+    // the change revertible (FR-10).
+    const before = new Map<string, string>();
+    for (const file of changeSet.files) {
+      before.set(file.path, await this.bridge.readText(file.path));
+    }
+
     const result = await applyChanges(
       { files: requests },
       {
@@ -282,6 +301,24 @@ export class EditService implements vscode.Disposable {
     );
 
     if (result.status === 'applied' || result.status === 'partially_applied') {
+      // Only the files that actually changed get a checkpoint.
+      const files: CheckpointFile[] = [];
+      for (const file of changeSet.files) {
+        const after = await this.bridge.readText(file.path);
+        const was = before.get(file.path) ?? '';
+        if (hashOf(after) === hashOf(was)) { continue; }
+        files.push({
+          path: file.path,
+          before: was,
+          after,
+          hashBefore: hashOf(was),
+          hashAfter: hashOf(after),
+        });
+      }
+      if (files.length) {
+        const checkpoint = this.checkpoints.create(changeSet.id, files, result.note);
+        this.checkpointByChangeSet.set(changeSet.id, checkpoint.id);
+      }
       this.changes.transition(changeSet.id, 'verified');
     } else if (result.status === 'conflict') {
       this.changes.transition(changeSet.id, 'conflict');
@@ -386,6 +423,72 @@ export class EditService implements vscode.Disposable {
   /** Commands waiting for approval (the chat renders them as cards). */
   getPendingCommands(): PendingCommand[] {
     return [...this.pendingCommands.values()];
+  }
+
+  /**
+   * Revert a change set (FR-10): restore the files to the text they had
+   * before the change.
+   *
+   * When a file has diverged since the change (the user edited it), the
+   * revert needs a confirmation: their own work must not be lost silently.
+   */
+  async revertChangeSet(changeSetId: string): Promise<{ reverted: boolean; note: string }> {
+    const checkpoint = this.checkpointByChangeSet.get(changeSetId)
+      ? this.checkpoints.get(this.checkpointByChangeSet.get(changeSetId)!)
+      : this.checkpoints.forChangeSet(changeSetId);
+    if (!checkpoint) {
+      return { reverted: false, note: 'There is nothing to revert for this change.' };
+    }
+    return this.revertCheckpoint(checkpoint.id);
+  }
+
+  /** Revert a checkpoint. */
+  async revertCheckpoint(checkpointId: string): Promise<{ reverted: boolean; note: string }> {
+    const checkpoint = this.checkpoints.get(checkpointId);
+    if (!checkpoint) {
+      return { reverted: false, note: 'That change is no longer available to revert.' };
+    }
+
+    // Divergence check: a file the user changed since is never overwritten
+    // without a confirmation.
+    const diverged: string[] = [];
+    for (const file of checkpoint.files) {
+      const current = await this.bridge.readText(file.path);
+      if (hasDiverged(file, current)) { diverged.push(file.path); }
+    }
+    if (diverged.length) {
+      const choice = await vscode.window.showWarningMessage(
+        diverged.length === 1
+          ? `${diverged[0]} changed after the change was applied. Revert anyway? Your newer edits will be replaced.`
+          : `${diverged.length} files changed after the change was applied. Revert anyway? Your newer edits will be replaced.`,
+        { modal: true },
+        'Revert anyway',
+      );
+      if (choice !== 'Revert anyway') {
+        return { reverted: false, note: 'The revert was cancelled: the files changed since the change was applied.' };
+      }
+    }
+
+    const reverted: string[] = [];
+    for (const file of checkpoint.files) {
+      await this.bridge.writeText(file.path, file.before);
+      const after = await this.bridge.readText(file.path);
+      if (hashOf(after) !== hashOf(file.before)) {
+        return {
+          reverted: false,
+          note: `The revert of ${file.path} could not be verified. The file may differ from the snapshot.`,
+        };
+      }
+      reverted.push(file.path);
+    }
+    const note = `Reverted ${reverted.length} file${reverted.length === 1 ? '' : 's'}. The files are back to the text before the change.`;
+    this.updateEmitter.fire({ kind: 'reverted', changeSetId: checkpoint.changeSetId, summary: note });
+    return { reverted: true, note };
+  }
+
+  /** The checkpoint of a change set (for the receipt card). */
+  checkpointFor(changeSetId: string): string | undefined {
+    return this.checkpointByChangeSet.get(changeSetId) ?? this.checkpoints.forChangeSet(changeSetId)?.id;
   }
 
   /**

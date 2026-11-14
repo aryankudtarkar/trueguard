@@ -153,6 +153,11 @@
         "command": "trueguard.dev.inject.clear",
         "title": "TrueGuard: Dev: Clear injected faults",
         "category": "TrueGuard"
+      },
+      {
+        "command": "trueguard.revertChange",
+        "title": "TrueGuard: Revert Last Change",
+        "category": "TrueGuard"
       }
     ],
     "keybindings": [

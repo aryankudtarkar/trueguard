@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { listFiles } from '../mcp/vscodeTools';
 import { keywords, scoreFile, type ContextCandidate } from './retriever';
+import { findSymbolsInText, rankSymbols, type SymbolDef } from './symbols';
 
 /**
  * The workspace context provider (FR-12).
@@ -21,6 +22,8 @@ export interface ContextProvider {
   candidates(message: string): Promise<ContextCandidate[]>;
   /** The context budget in bytes. */
   budgetBytes(): number;
+  /** The symbols that match a query (for the @symbol mentions). */
+  symbols(query: string): Promise<SymbolDef[]>;
 }
 
 export function workspaceContextProvider(): ContextProvider {
@@ -51,11 +54,28 @@ export function workspaceContextProvider(): ContextProvider {
     budgetBytes(): number {
       return vscode.workspace.getConfiguration('trueguard').get<number>('contextBudgetBytes', 16_384);
     },
+
+    async symbols(query: string): Promise<SymbolDef[]> {
+      // The file names are the cheapest filter: a symbol lives in a file whose
+      // name (or path) matches the query, or in any file at all.
+      const files = await listFiles(undefined, 2000);
+      const nameHint = query.toLowerCase();
+      const likely = files.filter((f) => f.toLowerCase().includes(nameHint)).slice(0, 40);
+      const scan = likely.length ? likely : files.slice(0, 60);
+      const found: SymbolDef[] = [];
+      for (const file of scan) {
+        const content = await readWorkspaceFile(file);
+        if (content === undefined) { continue; }
+        found.push(...findSymbolsInText(file, content));
+        if (found.length > 400) { break; }
+      }
+      return rankSymbols(found, query, 20);
+    },
   };
 }
 
 /** Read a workspace file (relative path), or undefined when it is too big. */
-async function readWorkspaceFile(relativePath: string): Promise<string | undefined> {
+export async function readWorkspaceFile(relativePath: string): Promise<string | undefined> {
   const folders = vscode.workspace.workspaceFolders ?? [];
   if (!folders.length) { return undefined; }
   const root = folders[0]!.uri.fsPath;

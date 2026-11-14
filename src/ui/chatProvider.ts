@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { HostToWebviewMessage, Message } from '../../webview/protocol';
+import type { ContextChip, HostToWebviewMessage, MentionSymbol, Message } from '../../webview/protocol';
 import { webviewToHostMessageSchema, type WebviewToHostParsed } from './chatProtocolSchemas';
 import { type ServerManager, ServerState } from '../trueforge/serverManager';
 import { type SessionManager } from '../trueforge/sessionManager';
@@ -9,6 +9,7 @@ import { findFilesForMention } from '../context/mentions';
 import { describeContext, formatContext, retrieveContext } from '../context/retriever';
 import type { ContextProvider } from '../context/workspaceContext';
 import { listFiles as listWorkspaceFiles } from '../mcp/vscodeTools';
+import { readWorkspaceFile } from '../context/workspaceContext';
 import { ToolCallBuffer, type StreamingEvent } from '../trueforge/schemas';
 
 /**
@@ -24,7 +25,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   private streamingMessageId: string | undefined;
   private streamBuffer = '';
   private flushTimer: NodeJS.Timeout | undefined;
-  private chip: { path: string; selection?: { startLine: number; endLine: number } } | null = null;
+  private chip: ContextChip | null = null;
   private lastServerState = ServerState.Stopped;
   private working = false;
   private pendingReviews = 0;
@@ -171,13 +172,18 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       }
       case 'mentionFiles': {
         const files = await this.listMentionCandidates(m.query);
-        this.post({ type: 'mentionFilesResult', files });
+        const symbols = await this.listMentionSymbols(m.query);
+        this.post({ type: 'mentionFilesResult', files, symbols });
         break;
       }
       case 'mention': {
-        // The user picked a file: it becomes a context chip.
-        this.chip = { path: m.path };
+        // The user picked a file or a symbol: it becomes a context chip.
+        this.chip = m.symbol ? { path: m.path, symbol: m.symbol } : { path: m.path };
         this.post({ type: 'chip', chip: this.chip });
+        break;
+      }
+      case 'revertChange': {
+        await this.reviews?.revertChangeSet(m.changeSetId);
         break;
       }
       case 'approveCommand': {
@@ -212,14 +218,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.addSystemMessage(`Switched to ${pick.label}. New turns use ${pick.description}.`);
   }
 
-  private async sendUserTurn(text: string, chips: readonly { path: string; selection?: { startLine: number; endLine: number } }[]): Promise<void> {
+  private async sendUserTurn(text: string, chips: readonly ContextChip[]): Promise<void> {
     if (!text.trim() || this.working) { return; }
 
     // Context assembly (FR-12): the mentions the user typed, plus the files
     // that match the message — within a visible budget.
     const mentioned = chips.map((c) => c.path);
-    const contextBlock = await this.buildContext(text, mentioned);
-    const contextLines = chips.map((c) => (c.selection ? `${c.path} (lines ${c.selection.startLine}-${c.selection.endLine})` : c.path));
+    const contextBlock = await this.buildContext(text, mentioned, chips);
+    const contextLines = chips.map((c) => {
+      if (c.symbol) { return `${c.symbol.name} (${c.symbol.kind}) in ${c.path}:${c.symbol.line}`; }
+      return c.selection ? `${c.path} (lines ${c.selection.startLine}-${c.selection.endLine})` : c.path;
+    });
     const parts = [text];
     if (contextLines.length) { parts.push(`Context: ${contextLines.join(', ')}`); }
     if (contextBlock.text) { parts.push(contextBlock.text); }
@@ -276,18 +285,37 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   private async buildContext(
     text: string,
     mentioned: readonly string[],
+    chips: readonly ContextChip[] = [],
   ): Promise<{ text: string; summary: string }> {
     const provider = this.contextProvider;
     if (!provider) { return { text: '', summary: '' }; }
     try {
       const candidates = await provider.candidates(text);
       const context = retrieveContext(text, candidates, provider.budgetBytes());
+      // A mentioned symbol contributes its definition, not the whole file.
+      const symbolBlocks = await this.symbolContext(chips);
       const summary = describeContext(context, mentioned);
-      return { text: formatContext(context, mentioned), summary };
+      const body = [formatContext(context, mentioned), ...symbolBlocks].filter(Boolean).join('\n\n');
+      return { text: body, summary };
     } catch (e) {
       logger().warn(`context assembly failed: ${redact(String(e))}`);
       return { text: '', summary: '' };
     }
+  }
+
+  /** The definition of every mentioned symbol, as a context block. */
+  private async symbolContext(chips: readonly ContextChip[]): Promise<string[]> {
+    const blocks: string[] = [];
+    for (const chip of chips) {
+      if (!chip.symbol) { continue; }
+      const content = await readWorkspaceFile(chip.path);
+      if (!content) { continue; }
+      const lines = content.split('\n');
+      const start = Math.max(0, chip.symbol.line - 1);
+      const excerpt = lines.slice(start, start + 40).join('\n');
+      blocks.push(`--- ${chip.path}:${chip.symbol.line} (${chip.symbol.name}) ---\n${excerpt}`);
+    }
+    return blocks;
   }
 
   /** The workspace files the user can mention. */
@@ -297,6 +325,24 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       return findFilesForMention(files, query, 20);
     } catch (e) {
       logger().warn(`mention lookup failed: ${redact(String(e))}`);
+      return [];
+    }
+  }
+
+  /** The symbols the user can mention with @. */
+  async listMentionSymbols(query: string): Promise<MentionSymbol[]> {
+    if (!this.contextProvider) { return []; }
+    try {
+      const symbols = await this.contextProvider.symbols(query);
+      return symbols.map((s) => ({
+        name: s.name,
+        kind: s.kind,
+        path: s.path,
+        line: s.line,
+        signature: s.signature,
+      }));
+    } catch (e) {
+      logger().warn(`symbol lookup failed: ${redact(String(e))}`);
       return [];
     }
   }
@@ -419,6 +465,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
             removed: file.hunks.reduce((sum, h) => sum + h.oldLines, 0),
             status,
             note: update.summary,
+            changeSetId: update.changeSetId,
+            revertible: status === 'Verified',
           },
         });
         this.changeCards.set(update.changeSetId, id);
@@ -430,7 +478,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     // Update the existing card (status chip + receipt).
     this.updateMessage(existing, (m) => ({
       ...m,
-      change: m.change ? { ...m.change, status, note: update.summary } : m.change,
+      change: m.change
+        ? {
+            ...m.change,
+            status,
+            note: update.summary,
+            revertible: status === 'Verified' || status === 'Reverted',
+          }
+        : m.change,
     }));
   }
 
@@ -542,6 +597,7 @@ export function shortModelName(fqn: string): string {
 
 /** Status chip text for a review (PRD 6.4). */
 export function statusLabel(kind: ReviewUpdate['kind'], state: string): string {
+  if (kind === 'reverted') { return 'Reverted'; }
   if (kind === 'applied') { return 'Verified'; }
   if (kind === 'rejected') { return 'Rejected'; }
   if (kind === 'conflict') { return 'Conflict'; }

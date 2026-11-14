@@ -260,4 +260,57 @@ describe('edit service: the review pipeline', () => {
     expect(sessions.approvals[0]?.status).toBe('deny');
     expect(service.getPendingCommands().length).toBe(0);
   });
+  it('records a checkpoint and can revert the change', async () => {
+    propose([{ oldText: 'export const a = 1;', newText: 'export const a = 11;' }]);
+    await service.handleApprovalRequired({ thread_id: 'main', tool_calls: [{ id: 'call_1' }] } as never);
+    const changeSet = changes.pending()[0]!;
+    await service.applyChangeSet(changeSet.id);
+    const result = await service.applyApproved();
+    expect(result.status).toBe('applied');
+    expect(files[path]?.disk).toContain('export const a = 11;');
+
+    // The change is revertible (FR-10).
+    const checkpointId = service.checkpointFor(changeSet.id);
+    expect(checkpointId).toBeDefined();
+    const revert = await service.revertCheckpoint(checkpointId!);
+    expect(revert.reverted).toBe(true);
+    expect(files[path]?.disk).toBe(BASE);
+  });
+
+  it('reverts a diverged file when the user confirms', async () => {
+    propose([{ oldText: 'export const a = 1;', newText: 'export const a = 11;' }]);
+    await service.handleApprovalRequired({ thread_id: 'main', tool_calls: [{ id: 'call_1' }] } as never);
+    const changeSet = changes.pending()[0]!;
+    await service.applyChangeSet(changeSet.id);
+    await service.applyApproved();
+    const checkpointId = service.checkpointFor(changeSet.id)!;
+    files[path]!.buffer = 'the user typed something\n';
+    files[path]!.disk = files[path]!.buffer;
+    // The mock answers the confirmation; the real API shows a modal.
+    const mockWindow = vscode.window as unknown as { warningAnswer: string | undefined };
+    mockWindow.warningAnswer = 'Revert anyway';
+    try {
+      const revert = await service.revertCheckpoint(checkpointId);
+      expect(revert.reverted).toBe(true);
+      expect(files[path]?.disk).toBe(BASE);
+    } finally {
+      mockWindow.warningAnswer = undefined;
+    }
+  });
+
+  it('refuses to revert a file that changed since the change was applied', async () => {
+    propose([{ oldText: 'export const a = 1;', newText: 'export const a = 11;' }]);
+    await service.handleApprovalRequired({ thread_id: 'main', tool_calls: [{ id: 'call_1' }] } as never);
+    const changeSet = changes.pending()[0]!;
+    await service.applyChangeSet(changeSet.id);
+    await service.applyApproved();
+    const checkpointId = service.checkpointFor(changeSet.id)!;
+    // The user edits the file afterwards.
+    files[path]!.buffer = 'the user typed something\n';
+    files[path]!.disk = files[path]!.buffer;
+    const revert = await service.revertCheckpoint(checkpointId);
+    // The confirmation was not accepted (no UI in the test): nothing is lost.
+    expect(revert.reverted).toBe(false);
+    expect(files[path]?.disk).toContain('the user typed something');
+  });
 });

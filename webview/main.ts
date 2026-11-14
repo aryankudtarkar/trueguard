@@ -1,6 +1,6 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import type { ContextChip, HostToWebviewMessage, Message } from './protocol';
+import type { ContextChip, HostToWebviewMessage, MentionSymbol, Message } from './protocol';
 
 /**
  * TrueGuard chat webview. Plain TypeScript + theme CSS variables, no framework.
@@ -103,6 +103,17 @@ function renderChangeCard(m: Message & { role: 'change' }): HTMLElement {
     note.className = 'secondary changeNote';
     note.textContent = change.note;
     el.appendChild(note);
+  }
+
+  if (change?.revertible && change.changeSetId) {
+    const revert = document.createElement('button');
+    revert.className = 'pill';
+    revert.textContent = 'Revert';
+    revert.setAttribute('aria-label', `Revert the change to ${change.path}`);
+    revert.addEventListener('click', () => {
+      void vscode.postMessage({ type: 'revertChange', changeSetId: change.changeSetId ?? '' });
+    });
+    el.appendChild(revert);
   }
 
   if (change && change.status === 'Awaiting review') {
@@ -272,33 +283,65 @@ async function requestMentionFiles(query: string): Promise<void> {
   await vscode.postMessage({ type: 'mentionFiles', query });
 }
 
-function insertMention(path: string): void {
+function insertMention(name: string, chip?: { path: string; symbol?: { name: string; kind: string; line: number } }): void {
   const value = input.value;
   const at = value.lastIndexOf('@');
   if (at >= 0) {
-    input.value = `${value.slice(0, at)}${path} ${value.slice(value.indexOf(' ', at) + 1)}`;
+    const rest = value.slice(value.indexOf(' ', at) + 1);
+    input.value = `${value.slice(0, at)}${name} ${rest}`;
   }
   input.focus();
-  void vscode.postMessage({ type: 'mention', path });
+  void vscode.postMessage({ type: 'mention', path: chip?.path ?? name, ...(chip?.symbol ? { symbol: chip.symbol } : {}) });
 }
 
-function showMentionPicker(files: readonly string[]): void {
-  if (!files.length) { return; }
+function showMentionPicker(files: readonly string[], symbols: readonly MentionSymbol[] = []): void {
+  if (!files.length && !symbols.length) { return; }
   const list = document.createElement('div');
   list.className = 'mentionList';
   list.setAttribute('role', 'listbox');
-  list.setAttribute('aria-label', 'Files to mention');
-  for (const file of files) {
-    const item = document.createElement('button');
-    item.className = 'mentionItem';
-    item.textContent = file;
-    item.setAttribute('role', 'option');
-    item.setAttribute('aria-label', `Mention ${file}`);
-    item.addEventListener('click', () => {
-      insertMention(file);
-      list.remove();
-    });
-    list.appendChild(item);
+  list.setAttribute('aria-label', 'Files and symbols to mention');
+
+  if (symbols.length) {
+    const heading = document.createElement('div');
+    heading.className = 'mentionHeading';
+    heading.textContent = 'Symbols';
+    list.appendChild(heading);
+    for (const symbol of symbols) {
+      const item = document.createElement('button');
+      item.className = 'mentionItem';
+      item.textContent = `${symbol.name} · ${symbol.kind} · ${symbol.path}:${symbol.line}`;
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-label', `Mention ${symbol.name}, ${symbol.kind} in ${symbol.path}`);
+      item.addEventListener('click', () => {
+        insertMention(symbol.name, {
+          path: symbol.path,
+          symbol: { name: symbol.name, kind: symbol.kind, line: symbol.line },
+        });
+        list.remove();
+      });
+      list.appendChild(item);
+    }
+  }
+
+  if (files.length) {
+    if (symbols.length) {
+      const heading = document.createElement('div');
+      heading.className = 'mentionHeading';
+      heading.textContent = 'Files';
+      list.appendChild(heading);
+    }
+    for (const file of files) {
+      const item = document.createElement('button');
+      item.className = 'mentionItem';
+      item.textContent = file;
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-label', `Mention ${file}`);
+      item.addEventListener('click', () => {
+        insertMention(file);
+        list.remove();
+      });
+      list.appendChild(item);
+    }
   }
   chipRow.before(list);
 }
@@ -355,7 +398,7 @@ window.addEventListener('message', (e: MessageEvent) => {
       break;
     }
     case 'mentionFilesResult': {
-      if (m.files.length) { showMentionPicker(m.files); }
+      if (m.files.length || m.symbols?.length) { showMentionPicker(m.files, m.symbols ?? []); }
       break;
     }
   }

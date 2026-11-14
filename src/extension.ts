@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import { EditorMcpServer, MCP_SERVER_NAME } from './mcp/editorServer';
 import { FaultHook } from './edits/faults';
 import { ChangeStore } from './edits/store';
+import { CheckpointStore } from './edits/checkpoints';
 import { vscodeBridge, vscodeProposalContext } from './edits/vscodeBridge';
 import { DecisionStore } from './review/decisionStore';
 import { EditService } from './review/editService';
@@ -56,7 +57,17 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
   // The review pipeline: proposals → hunk-level review → verified writes.
   const changes = new ChangeStore();
   const decisions = new DecisionStore();
-  const editService = new EditService(sessions, vscodeBridge(), vscodeProposalContext(), changes, decisions);
+  const checkpointStore = new CheckpointStore(path.join(context.globalStorageUri.fsPath, 'checkpoints'));
+  void checkpointStore.load();
+  const editService = new EditService(
+    sessions,
+    vscodeBridge(),
+    vscodeProposalContext(),
+    changes,
+    decisions,
+    undefined,
+    checkpointStore,
+  );
   editor.setEditTools({ service: editService });
 
 
@@ -344,6 +355,18 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
       }
       await editService.rejectChangeSet(id, 'The user rejected this change.');
       refreshPending();
+    }),
+  );
+
+  registerDisposable(
+    vscode.commands.registerCommand('trueguard.revertChange', async () => {
+      const latest = checkpointStore.latest();
+      if (!latest) {
+        void vscode.window.showInformationMessage('There is no applied change to revert.');
+        return;
+      }
+      const result = await editService.revertCheckpoint(latest.id);
+      void vscode.window.showInformationMessage(result.note);
     }),
   );
 

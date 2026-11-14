@@ -8,6 +8,7 @@ import { computeHunks } from '../../src/edits/hunks';
 import { contentHash } from '../../src/util/hash';
 import { vscodeBridge } from '../../src/edits/vscodeBridge';
 import { BOM } from '../../src/edits/text';
+import { CheckpointStore, hashOf } from '../../src/edits/checkpoints';
 
 /**
  * Integration on real TextDocuments (PRD Phase 3.8): dirty buffers, CRLF,
@@ -138,6 +139,34 @@ describe('edit engine in real VS Code', () => {
     const result = await applyChanges({ files: [request] }, { bridge: vscodeBridge() });
     expect(result.status).toBe('conflict');
     expect(await fs.readFile(file, 'utf8')).toBe('one\nuser edit\n');
+    await fs.rm(dir, { recursive: true, force: true });
+  });
+  it('reverts an applied change back to the text before it', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'forgeguard-revert-'));
+    const file = path.join(dir, 'r.ts');
+    const original = 'one\ntwo\n';
+    await fs.writeFile(file, original, 'utf8');
+
+    // Apply the change through the real editor bridge.
+    const bridge = vscodeBridge();
+    await bridge.writeText(file, 'one\nTWO\n');
+    expect(await fs.readFile(file, 'utf8')).toBe('one\nTWO\n');
+
+    // Record the checkpoint the way the edit service does.
+    const store = new CheckpointStore();
+    const checkpoint = store.create('cs1', [
+      {
+        path: file,
+        before: original,
+        after: 'one\nTWO\n',
+        hashBefore: hashOf(original),
+        hashAfter: hashOf('one\nTWO\n'),
+      },
+    ], 'Applied 1 of 1 changes');
+
+    // Revert it.
+    await bridge.writeText(checkpoint.files[0]!.path, checkpoint.files[0]!.before);
+    expect(await fs.readFile(file, 'utf8')).toBe(original);
     await fs.rm(dir, { recursive: true, force: true });
   });
 });

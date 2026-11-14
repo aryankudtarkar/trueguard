@@ -13,6 +13,13 @@ export const contextChipSchema = z.object({
     .object({ startLine: z.number().int().min(1), endLine: z.number().int().min(1) })
     .refine((s) => s.endLine >= s.startLine, { message: 'endLine must be >= startLine' })
     .optional(),
+  symbol: z
+    .object({
+      name: z.string().min(1),
+      kind: z.string().min(1),
+      line: z.number().int().min(1),
+    })
+    .optional(),
 });
 export type ContextChipValidated = z.infer<typeof contextChipSchema>;
 
@@ -28,8 +35,15 @@ export const webviewToHostMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('openReview') }),
   z.object({ type: z.literal('approveCommand'), toolCallId: z.string().min(1) }),
   z.object({ type: z.literal('denyCommand'), toolCallId: z.string().min(1) }),
+  z.object({ type: z.literal('revertChange'), changeSetId: z.string().min(1).max(64) }),
   z.object({ type: z.literal('mentionFiles'), query: z.string().max(200) }),
-  z.object({ type: z.literal('mention'), path: z.string().min(1).max(400) }),
+  z.object({
+    type: z.literal('mention'),
+    path: z.string().min(1).max(400),
+    symbol: z
+      .object({ name: z.string().min(1).max(200), kind: z.string().min(1).max(40), line: z.number().int().min(1) })
+      .optional(),
+  }),
 ]);
 
 export type WebviewToHostParsed = z.infer<typeof webviewToHostMessageSchema>;

@@ -6,6 +6,17 @@
 export interface ContextChip {
   readonly path: string; // workspace-relative
   readonly selection?: { readonly startLine: number; readonly endLine: number };
+  /** Set when the chip came from an @symbol mention. */
+  readonly symbol?: { readonly name: string; readonly kind: string; readonly line: number };
+}
+
+/** A symbol the user can mention with @. */
+export interface MentionSymbol {
+  readonly name: string;
+  readonly kind: string;
+  readonly path: string;
+  readonly line: number;
+  readonly signature: string;
 }
 
 export interface Message {
@@ -38,6 +49,10 @@ export interface Message {
     readonly removed: number;
     readonly status: string;
     readonly note?: string;
+    /** The change can be undone (FR-10). */
+    readonly revertible?: boolean;
+    /** The change set this card belongs to. */
+    readonly changeSetId?: string;
   };
 }
 
@@ -52,9 +67,14 @@ export type WebviewToHostMessage =
   | { readonly type: 'openReview' }
   | { readonly type: 'approveCommand'; readonly toolCallId: string }
   | { readonly type: 'mentionFiles'; readonly query: string }
-  | { readonly type: 'mentionFilesResult'; readonly files: readonly string[] }
   | { readonly type: 'denyCommand'; readonly toolCallId: string }
-  | { readonly type: 'mention'; readonly path: string };
+  | { readonly type: 'revertChange'; readonly changeSetId: string }
+  | {
+      readonly type: 'mention';
+      readonly path: string;
+      /** Set when the user picked a symbol rather than a file. */
+      readonly symbol?: { readonly name: string; readonly kind: string; readonly line: number };
+    };
 
 export type HostToWebviewMessage =
   | {
@@ -69,4 +89,8 @@ export type HostToWebviewMessage =
   | { readonly type: 'streamDelta'; readonly messageId: string; readonly text: string }
   | { readonly type: 'notice'; readonly text: string }
   | { readonly type: 'chip'; readonly chip: ContextChip | null }
-  | { readonly type: 'mentionFilesResult'; readonly files: readonly string[] };
+  | {
+      readonly type: 'mentionFilesResult';
+      readonly files: readonly string[];
+      readonly symbols?: readonly MentionSymbol[];
+    };

@@ -1,5 +1,10 @@
 // Minimal vscode mock for unit tests. Only what imported modules actually use.
 export const window = {
+  /** The answer the next showWarningMessage call resolves with. */
+  warningAnswer: undefined as string | undefined,
+  showWarningMessage: async () => window.warningAnswer,
+  showInformationMessage: async () => undefined,
+  showErrorMessage: async () => undefined,
   createOutputChannel: () => ({
     appendLine: () => undefined,
     append: () => undefined,

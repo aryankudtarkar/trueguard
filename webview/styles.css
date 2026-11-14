@@ -77,6 +77,12 @@ body {
   max-height: 160px;
 }
 
+.mentionHeading {
+  padding: 4px 8px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+}
+
 .mentionItem {
   background: transparent;
   color: var(--vscode-foreground);

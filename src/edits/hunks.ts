@@ -99,12 +99,27 @@ export function computeHunks(baseText: string, proposedText: string): Hunk[] {
       }
       break;
     }
-    hunks.push({
-      id: hunkId(oldLine, removed, added),
-      oldStart: oldLine,
-      oldLines: oldCount,
-      newLines: added,
-    });
+
+    // A block that replaces as many lines as it removes can be split into one
+    // hunk per line: accepting one and rejecting the other then leaves a
+    // sensible intermediate state, instead of an all-or-nothing blob.
+    if (removed.length > 1 && removed.length === added.length) {
+      removed.forEach((oldLineText, i) => {
+        hunks.push({
+          id: hunkId(oldLine + i, [oldLineText], [added[i]!]),
+          oldStart: oldLine + i,
+          oldLines: 1,
+          newLines: [added[i]!],
+        });
+      });
+    } else {
+      hunks.push({
+        id: hunkId(oldLine, removed, added),
+        oldStart: oldLine,
+        oldLines: oldCount,
+        newLines: added,
+      });
+    }
     oldLine += oldCount;
   }
 
