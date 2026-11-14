@@ -18,7 +18,7 @@ import { runInlineEdit } from './ui/inlineEdit';
 import { workspaceContextProvider } from './context/workspaceContext';
 import { logger, redact } from './util/logger';
 
-export interface ForgeGuardApi {
+export interface TrueGuardApi {
   server: ServerManager;
   sessions: SessionManager;
   editor: EditorMcpServer;
@@ -26,9 +26,9 @@ export interface ForgeGuardApi {
   editService: EditService;
 }
 
-export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
+export function activate(context: vscode.ExtensionContext): TrueGuardApi {
   const log = logger();
-  log.info('ForgeGuard activating');
+  log.info('TrueGuard activating');
 
   const server = new ServerManager(context);
   const editor = new EditorMcpServer();
@@ -71,13 +71,13 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
 
   // Commands run in a shell inside the workspace, after the user approves the
   // exact command. Their output goes to the Commands output channel.
-  const commandsChannel = vscode.window.createOutputChannel('ForgeGuard Commands');
+  const commandsChannel = vscode.window.createOutputChannel('TrueGuard Commands');
   registerDisposable(commandsChannel);
   editor.setCommandTools({
     resolveCwd: async (cwd) =>
       resolveCommandCwd(cwd, (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath)),
     defaultTimeoutSec: () =>
-      vscode.workspace.getConfiguration('forgeguard').get<number>('commandTimeoutSec', 120),
+      vscode.workspace.getConfiguration('trueguard').get<number>('commandTimeoutSec', 120),
     onOutput: (chunk) => commandsChannel.append(chunk),
     approval: async () => editService.takeCommandApproval(),
   });
@@ -90,7 +90,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     accept: (item) => void acceptItem(item),
     reject: (item) => void rejectItem(item),
   });
-  const changesView = vscode.window.createTreeView('forgeguard.changesView', {
+  const changesView = vscode.window.createTreeView('trueguard.changesView', {
     treeDataProvider: changesTree,
     showCollapseAll: true,
   });
@@ -123,7 +123,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
         type: 'remote',
         name: MCP_SERVER_NAME,
         url: ep.url,
-        description: 'ForgeGuard editor tools: read-only workspace access from the agent.',
+        description: 'TrueGuard editor tools: read-only workspace access from the agent.',
         auth: { type: 'header', headers: { authorization: `Bearer ${ep.token}` } },
       });
       registeredUrl = ep.url;
@@ -148,28 +148,28 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
 
   // Commands
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.startTrueForge', async () => {
+    vscode.commands.registerCommand('trueguard.startTrueForge', async () => {
       try {
         await server.start();
         void vscode.window.showInformationMessage('TrueForge is running.');
       } catch {
         void vscode.window.showErrorMessage(
-          'ForgeGuard can not start TrueForge. Check the ForgeGuard output channel for the cause.',
+          'TrueGuard can not start TrueForge. Check the TrueGuard output channel for the cause.',
         );
       }
     }),
   );
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.stopTrueForge', () => server.stop()),
+    vscode.commands.registerCommand('trueguard.stopTrueForge', () => server.stop()),
   );
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.newChat', () => {
+    vscode.commands.registerCommand('trueguard.newChat', () => {
       sessions.newChat();
-      void vscode.commands.executeCommand('forgeguard.chatView.focus');
+      void vscode.commands.executeCommand('trueguard.chatView.focus');
     }),
   );
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.stopTurn', async () => {
+    vscode.commands.registerCommand('trueguard.stopTurn', async () => {
       await sessions.stopTurn();
       // Stopping denies every approval that is still waiting (FR-5).
       await editService.denyAllPending('The turn was stopped.');
@@ -177,12 +177,12 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     }),
   );
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.switchModel', async () => {
+    vscode.commands.registerCommand('trueguard.switchModel', async () => {
       // QuickPick lives in the chat provider; focus the view and let the user click the pill,
       // or expose the same QuickPick here.
-      const models = vscode.workspace.getConfiguration('forgeguard').get<Array<{ id: string; label: string; ref: string }>>('models', []);
+      const models = vscode.workspace.getConfiguration('trueguard').get<Array<{ id: string; label: string; ref: string }>>('models', []);
       if (!models.length) {
-        void vscode.window.showInformationMessage('No models configured. Add one in Settings under ForgeGuard: Models.');
+        void vscode.window.showInformationMessage('No models configured. Add one in Settings under TrueGuard: Models.');
         return;
       }
       const pick = await vscode.window.showQuickPick(
@@ -191,11 +191,11 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
       );
       if (!pick) { return; }
       const idx = models.findIndex((m) => m.id === pick.id);
-      await vscode.workspace.getConfiguration('forgeguard').update('activeModelIndex', idx, vscode.ConfigurationTarget.Global);
+      await vscode.workspace.getConfiguration('trueguard').update('activeModelIndex', idx, vscode.ConfigurationTarget.Global);
     }),
   );
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.showSessionLog', async () => {
+    vscode.commands.registerCommand('trueguard.showSessionLog', async () => {
       logger().show();
       const file = await sessionLog.latestFile();
       if (!file) {
@@ -209,8 +209,8 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
 
   // Focus helpers contributed via views/item commands
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.chat.focus', () => {
-      void vscode.commands.executeCommand('forgeguard.chatView.focus');
+    vscode.commands.registerCommand('trueguard.chat.focus', () => {
+      void vscode.commands.executeCommand('trueguard.chatView.focus');
     }),
   );
 
@@ -224,7 +224,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
 
   async function openDiff(item: ChangeTreeItem): Promise<void> {
     if (item.kind === 'group') {
-      await vscode.commands.executeCommand('forgeguard.reviewNextChange');
+      await vscode.commands.executeCommand('trueguard.reviewNextChange');
       return;
     }
     const changeSetId = item.changeSetId;
@@ -291,8 +291,8 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
   }
 
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.reviewNextChange', async () => {
-      await vscode.commands.executeCommand('forgeguard.changesView.focus');
+    vscode.commands.registerCommand('trueguard.reviewNextChange', async () => {
+      await vscode.commands.executeCommand('trueguard.changesView.focus');
       const pending = changes.pending();
       if (!pending.length) {
         void vscode.window.showInformationMessage('No changes are waiting for review.');
@@ -301,25 +301,25 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
   );
 
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.review.openDiff', (item: ChangeTreeItem) => openDiff(item)),
+    vscode.commands.registerCommand('trueguard.review.openDiff', (item: ChangeTreeItem) => openDiff(item)),
   );
 
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.acceptHunk', async (item?: ChangeTreeItem) => {
+    vscode.commands.registerCommand('trueguard.acceptHunk', async (item?: ChangeTreeItem) => {
       const target = item ?? (await pickHunk());
       if (target) { acceptItem(target); }
     }),
   );
 
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.rejectHunk', async (item?: ChangeTreeItem) => {
+    vscode.commands.registerCommand('trueguard.rejectHunk', async (item?: ChangeTreeItem) => {
       const target = item ?? (await pickHunk());
       if (target) { rejectItem(target); }
     }),
   );
 
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.acceptAll', () => {
+    vscode.commands.registerCommand('trueguard.acceptAll', () => {
       const id = currentReviewId();
       if (!id) {
         void vscode.window.showInformationMessage('No changes are waiting for review.');
@@ -331,7 +331,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
   );
 
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.rejectAll', async () => {
+    vscode.commands.registerCommand('trueguard.rejectAll', async () => {
       const id = currentReviewId();
       if (!id) {
         void vscode.window.showInformationMessage('No changes are waiting for review.');
@@ -343,7 +343,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
   );
 
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.applyChanges', async () => {
+    vscode.commands.registerCommand('trueguard.applyChanges', async () => {
       const id = currentReviewId();
       if (!id) {
         void vscode.window.showInformationMessage('No changes are waiting for review.');
@@ -398,10 +398,10 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
   // Dev-only: arm the "corrupt the next write" fault (demo scenario D3).
   const faults = new FaultHook();
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.dev.corruptNextWrite', () => {
+    vscode.commands.registerCommand('trueguard.dev.corruptNextWrite', () => {
       if (!devFaultsEnabled()) {
         void vscode.window.showInformationMessage(
-          'Fault injection is off. Enable "ForgeGuard: Enable Fault Injection" in Settings first.',
+          'Fault injection is off. Enable "TrueGuard: Enable Fault Injection" in Settings first.',
         );
         return;
       }
@@ -419,10 +419,10 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     ['stall', 'a stalled response'],
   ] as const) {
     registerDisposable(
-      vscode.commands.registerCommand(`forgeguard.dev.inject.${mode}`, async () => {
+      vscode.commands.registerCommand(`trueguard.dev.inject.${mode}`, async () => {
         if (!devFaultsEnabled()) {
           void vscode.window.showInformationMessage(
-            'Fault injection is off. Enable "ForgeGuard: Enable Fault Injection" in Settings first.',
+            'Fault injection is off. Enable "TrueGuard: Enable Fault Injection" in Settings first.',
           );
           return;
         }
@@ -436,7 +436,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     );
   }
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.dev.inject.clear', async () => {
+    vscode.commands.registerCommand('trueguard.dev.inject.clear', async () => {
       const ok = await setFakeProviderMode('echo');
       void vscode.window.showInformationMessage(ok ? 'Fault injection cleared.' : 'The fake provider is not running.');
     }),
@@ -476,7 +476,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
   // This is tied to the explicit stop action, NOT to the end of a turn: a turn
   // that ends AT the approval gate must keep its review alive.
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.denyPendingApprovals', async () => {
+    vscode.commands.registerCommand('trueguard.denyPendingApprovals', async () => {
       await editService.denyAllPending('The turn was stopped.');
       refreshPending();
     }),
@@ -495,11 +495,11 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
   let inlineRequest: { path: string; changeSetId?: string } | undefined;
 
   registerDisposable(
-    vscode.commands.registerCommand('forgeguard.inlineEdit', async () => {
+    vscode.commands.registerCommand('trueguard.inlineEdit', async () => {
       await runInlineEdit({
         sessions,
         model: () => {
-          const cfg = vscode.workspace.getConfiguration('forgeguard');
+          const cfg = vscode.workspace.getConfiguration('trueguard');
           const models = cfg.get<Array<{ id: string; label: string; ref: string }>>('models', []);
           const idx = cfg.get<number>('activeModelIndex', 0);
           return models[idx]?.ref ?? models[0]?.ref ?? 'openai/gpt-4o-mini';
@@ -529,7 +529,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
     }),
   );
 
-  log.info('ForgeGuard activated');
+  log.info('TrueGuard activated');
 
   return { server, sessions, editor, changes, editService };
 }
@@ -538,7 +538,7 @@ export function activate(context: vscode.ExtensionContext): ForgeGuardApi {
 function devFaultsEnabled(): boolean {
   const mode = vscode.env.appName.toLowerCase();
   const devMode = mode.includes('insiders') || mode.includes('dev');
-  return devMode || vscode.workspace.getConfiguration('forgeguard').get<boolean>('dev.enableFaultInjection', false);
+  return devMode || vscode.workspace.getConfiguration('trueguard').get<boolean>('dev.enableFaultInjection', false);
 }
 
 /**

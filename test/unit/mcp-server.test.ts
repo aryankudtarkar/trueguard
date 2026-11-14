@@ -12,7 +12,7 @@ let server: EditorMcpServer;
 let deps: EditorToolDeps;
 
 beforeAll(async () => {
-  root = await mkdtemp(path.join(os.tmpdir(), 'forgeguard-mcp-'));
+  root = await mkdtemp(path.join(os.tmpdir(), 'trueguard-mcp-'));
   await mkdir(path.join(root, 'src'));
   await mkdir(path.join(root, '.git'));
   await writeFile(path.join(root, 'src/app.ts'), 'export const a = 1;\nexport const b = 2;\n');

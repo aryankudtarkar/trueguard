@@ -21,10 +21,10 @@ the answer arrived, and exactly one notice was shown.
 | 6.1 ErrorClassifier, table-driven, for the verified error shapes | Pass | `src/failover/classifier.ts`; `classifier.test.ts` (13 tests: 429, 5xx, timeout, reset, 401/403, quota, 400, context length, unknown) |
 | 6.2 Policy, per-turn attempt tracking, 429 backoff with a 5 s cap, circuit breaker with a 60 s cooldown and a probe back to the primary | Pass | `src/failover/manager.ts`; `failover-manager.test.ts` (15 tests) |
 | 6.3 Resume strategy (PATCH the session's model, continue the same session) + no re-running of tool calls that already completed | Pass | `SessionManager.sendTurn` (the retry loop); `ToolCallGuard` (the idempotency guard); `failover-resume.test.ts` |
-| 6.4 Inline notice, status bar warning, model label on agent messages, Switch Model QuickPick, all-models-down error with Retry and Edit Models | Pass | `chatProvider.onFailover` (notice), `statusBar.setFailover`, `shortModelName` on the agent message, `forgeguard.switchModel`, the error with two actions |
-| 6.5 Dev fault injection (429, 503, timeout, 401), dev flags only | Pass | `ForgeGuard: Dev: Inject 429/503/401/stall` + `Clear injected faults`; gated by `devFaultsEnabled()` and hidden from the palette |
+| 6.4 Inline notice, status bar warning, model label on agent messages, Switch Model QuickPick, all-models-down error with Retry and Edit Models | Pass | `chatProvider.onFailover` (notice), `statusBar.setFailover`, `shortModelName` on the agent message, `trueguard.switchModel`, the error with two actions |
+| 6.5 Dev fault injection (429, 503, timeout, 401), dev flags only | Pass | `TrueGuard: Dev: Inject 429/503/401/stall` + `Clear injected faults`; gated by `devFaultsEnabled()` and hidden from the palette |
 | 6.6 Classifier table, state machine, end-to-end with an injected fault | Pass | `classifier.test.ts`, `failover-manager.test.ts`, `failover-resume.test.ts`, and the live integration gate |
-| FR-7: ordered models, index 0 is the primary | Pass | `forgeguard.models` setting; `FailoverManager.active` |
+| FR-7: ordered models, index 0 is the primary | Pass | `trueguard.models` setting; `FailoverManager.active` |
 | FR-7: 429 honors Retry-After up to a 5 s cap | Pass | `classifier.test.ts` ("honours Retry-After, capped at 5 seconds") |
 | FR-7: at most one attempt per model per turn | Pass | `failover-manager.test.ts` ("tries each model at most once per turn") |
 | FR-7: the breaker marks a model unhealthy for 60 s | Pass | `failover-manager.test.ts` ("marks a failed model unhealthy for 60 seconds") |

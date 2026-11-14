@@ -13,7 +13,7 @@ import type { EditService } from './editService';
  * the user sees exactly what would change.
  */
 
-export const DIFF_SCHEME = 'forgeguard';
+export const DIFF_SCHEME = 'trueguard';
 
 /** URI of the virtual "proposed" version of a file. */
 export function proposedUri(changeSetId: string, path: string): vscode.Uri {

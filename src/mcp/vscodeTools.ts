@@ -195,9 +195,9 @@ export function vscodeToolDeps(): EditorToolDeps {
       return { activeFile: null, error: 'editor context unavailable' };
     }),
     allowSecretReads: () =>
-      vscode.workspace.getConfiguration('forgeguard').get<boolean>('allowSecretReads', false),
+      vscode.workspace.getConfiguration('trueguard').get<boolean>('allowSecretReads', false),
     outputCapBytes: () =>
-      vscode.workspace.getConfiguration('forgeguard').get<number>('toolOutputCapBytes', 16_384),
+      vscode.workspace.getConfiguration('trueguard').get<number>('toolOutputCapBytes', 16_384),
     sizeOf,
   };
 }

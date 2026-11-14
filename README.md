@@ -1,9 +1,9 @@
-# ForgeGuard
+# TrueGuard
 
 A trustworthy autonomous coding agent inside VS Code, running on
 [TrueForge](https://github.com/truefoundry/trueforge).
 
-ForgeGuard is an **extension**: it creates sessions, streams the agent's
+TrueGuard is an **extension**: it creates sessions, streams the agent's
 answers, exposes your workspace to the agent as tools, and owns everything you
 see. The agent loop runs on TrueForge; the trust runs here.
 
@@ -11,7 +11,7 @@ see. The agent loop runs on TrueForge; the trust runs here.
 
 - **Nothing reaches disk without explicit, hunk-level approval.** Every edit
   arrives as a diff in the Changes view. You accept or reject each hunk.
-- **The agent can never claim an edit succeeded unless ForgeGuard verified
+- **The agent can never claim an edit succeeded unless TrueGuard verified
   it.** Every write is checked against the editor buffer *and* the disk. If
   they do not match, the file is restored and the agent is told the truth.
 - **A provider failure does not end the session.** A rate limit, a server
@@ -22,17 +22,17 @@ see. The agent loop runs on TrueForge; the trust runs here.
 Requires Node 22+, VS Code 1.93+ and a TrueForge server.
 
 ```bash
-git clone <this repo> forgeguard
-cd forgeguard
+git clone <this repo> trueguard
+cd trueguard
 npm install
 npm run setup        # registers the models with TrueForge
 npm run trueforge    # starts the server on http://localhost:8790
 ```
 
 Then in VS Code: open the folder, press <kbd>F5</kbd> (Run Extension), and
-click the ForgeGuard icon in the Activity Bar.
+click the TrueGuard icon in the Activity Bar.
 
-For a guided tour, run **ForgeGuard: Start TrueForge** from the Command
+For a guided tour, run **TrueGuard: Start TrueForge** from the Command
 Palette, then ask for something small in the chat, for example:
 
 > Add a doc comment to the function `formatDate` in src/util/date.ts
@@ -50,7 +50,7 @@ npm run setup                     # registers it as "fake-provider"
 npm run trueforge                 # the agent harness on :8790
 ```
 
-Models are configured in **Settings → ForgeGuard: Models**. Each entry needs
+Models are configured in **Settings → TrueGuard: Models**. Each entry needs
 an `id`, a `label` and a `ref` (the model identifier TrueForge expects, e.g.
 `openai/gpt-4o-mini`). Index 0 is the primary; the rest are the fallbacks.
 
@@ -58,16 +58,16 @@ an `id`, a `label` and a `ref` (the model identifier TrueForge expects, e.g.
 
 | Command | What it does |
 | --- | --- |
-| ForgeGuard: Start TrueForge | Start (or attach to) the agent harness |
-| ForgeGuard: New Chat | Start a new conversation |
-| ForgeGuard: Stop Turn | Cancel the running turn (and deny its approvals) |
-| ForgeGuard: Switch Model | Choose the model for the next turn |
-| ForgeGuard: Review Next Change | Focus the pending reviews |
-| ForgeGuard: Accept Hunk / Reject Hunk | Accept or reject one hunk |
-| ForgeGuard: Accept All / Reject All | Accept or reject the whole review |
-| ForgeGuard: Apply Selected Changes | Write the accepted hunks (verified) |
-| ForgeGuard: Inline Edit Selection | Select code, describe the change, see the diff |
-| ForgeGuard: Show Session Log | Open the output channel |
+| TrueGuard: Start TrueForge | Start (or attach to) the agent harness |
+| TrueGuard: New Chat | Start a new conversation |
+| TrueGuard: Stop Turn | Cancel the running turn (and deny its approvals) |
+| TrueGuard: Switch Model | Choose the model for the next turn |
+| TrueGuard: Review Next Change | Focus the pending reviews |
+| TrueGuard: Accept Hunk / Reject Hunk | Accept or reject one hunk |
+| TrueGuard: Accept All / Reject All | Accept or reject the whole review |
+| TrueGuard: Apply Selected Changes | Write the accepted hunks (verified) |
+| TrueGuard: Inline Edit Selection | Select code, describe the change, see the diff |
+| TrueGuard: Show Session Log | Open the output channel |
 
 Keyboard: <kbd>Ctrl/Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd>
 accepts a hunk, <kbd>R</kbd> rejects it, <kbd>Ctrl/Cmd</kbd>+<kbd>Alt</kbd>+<kbd>I</kbd>
@@ -77,14 +77,14 @@ starts an inline edit.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `forgeguard.trueforge.baseUrl` | `http://localhost:8790` | The TrueForge server |
-| `forgeguard.models` | `[]` | Ordered model profiles (index 0 is primary) |
-| `forgeguard.activeModelIndex` | `0` | The model for new turns |
-| `forgeguard.toolOutputCapBytes` | `16384` | The cap on one tool result |
-| `forgeguard.contextBudgetBytes` | `16384` | The cap on the context per message |
-| `forgeguard.commandTimeoutSec` | `120` | The timeout for agent-run commands |
-| `forgeguard.allowSecretReads` | `false` | Let the agent read `.env`, `*.pem`, … |
-| `forgeguard.dev.enableFaultInjection` | `false` | Enable the demo fault commands |
+| `trueguard.trueforge.baseUrl` | `http://localhost:8790` | The TrueForge server |
+| `trueguard.models` | `[]` | Ordered model profiles (index 0 is primary) |
+| `trueguard.activeModelIndex` | `0` | The model for new turns |
+| `trueguard.toolOutputCapBytes` | `16384` | The cap on one tool result |
+| `trueguard.contextBudgetBytes` | `16384` | The cap on the context per message |
+| `trueguard.commandTimeoutSec` | `120` | The timeout for agent-run commands |
+| `trueguard.allowSecretReads` | `false` | Let the agent read `.env`, `*.pem`, … |
+| `trueguard.dev.enableFaultInjection` | `false` | Enable the demo fault commands |
 
 ## How it works
 
@@ -117,9 +117,9 @@ Full details, including the verified TrueForge API, are in
 
 | Symptom | Cause and fix |
 | --- | --- |
-| "ForgeGuard can not reach TrueForge" | The server is not running: `npm run trueforge`. Check `forgeguard.trueforge.baseUrl`. |
-| The agent answers but cannot read files | The editor MCP server is not registered: run `npm run setup` and check the ForgeGuard output channel. |
-| "No model is available right now" | Every model failed. Edit `forgeguard.models` and press Retry. |
+| "TrueGuard can not reach TrueForge" | The server is not running: `npm run trueforge`. Check `trueguard.trueforge.baseUrl`. |
+| The agent answers but cannot read files | The editor MCP server is not registered: run `npm run setup` and check the TrueGuard output channel. |
+| "No model is available right now" | Every model failed. Edit `trueguard.models` and press Retry. |
 | The agent's edit was refused | The `oldText` did not match the file exactly. The error says which line looked closest. |
 | A change says "Conflict" | The file changed after the agent read it. Review again. |
 

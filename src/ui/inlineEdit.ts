@@ -10,7 +10,7 @@ import { logger } from '../util/logger';
  * through the normal review: nothing is applied without the user's approval.
  */
 
-export const INLINE_EDIT_COMMAND = 'forgeguard.inlineEdit';
+export const INLINE_EDIT_COMMAND = 'trueguard.inlineEdit';
 
 /** What the user selected. */
 export interface InlineSelection {
@@ -85,14 +85,14 @@ export async function runInlineEdit(deps: InlineEditDeps): Promise<void> {
     );
   } catch (e) {
     logger().warn(`inline edit failed: ${String(e)}`);
-    void vscode.window.showErrorMessage('The inline edit could not be started. See the ForgeGuard output for the cause.');
+    void vscode.window.showErrorMessage('The inline edit could not be started. See the TrueGuard output for the cause.');
   }
 }
 
 /** A native input box for the instruction. */
 export async function askForInstruction(): Promise<string | undefined> {
   const box = vscode.window.createInputBox();
-  box.title = 'ForgeGuard: change the selected code';
+  box.title = 'TrueGuard: change the selected code';
   box.placeholder = 'e.g. make this a for loop';
   box.prompt = 'Describe the change you want. Nothing is written until you approve it.';
   box.ignoreFocusOut = true;

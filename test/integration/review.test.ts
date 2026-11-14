@@ -19,7 +19,7 @@ import type { StreamingEvent } from '../../src/trueforge/schemas';
 
 const FAKE_LLM = 'http://127.0.0.1:8799';
 
-interface ForgeGuardApi {
+interface TrueGuardApi {
   sessions: {
     sendTurn(
       input: unknown[],
@@ -60,10 +60,10 @@ async function setFakeMode(body: Record<string, unknown>): Promise<void> {
   });
 }
 
-async function getApi(): Promise<ForgeGuardApi | undefined> {
-  const ext = vscode.extensions.getExtension('forgeguard-dev.forgeguard');
+async function getApi(): Promise<TrueGuardApi | undefined> {
+  const ext = vscode.extensions.getExtension('trueguard-dev.trueguard');
   if (!ext) { return undefined; }
-  const api = (await ext.activate()) as unknown as ForgeGuardApi;
+  const api = (await ext.activate()) as unknown as TrueGuardApi;
   return api;
 }
 
@@ -83,7 +83,7 @@ describe('phase 4 exit gate: approval gate and review', () => {
     const api = await getApi();
     if (!api) { return; }
 
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'forgeguard-p4-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'trueguard-p4-'));
     const file = path.join(dir, 'app.ts');
     const original = 'export const a = 1;\nexport const b = 2;\nexport const c = 3;\n';
     await fs.writeFile(file, original, 'utf8');
@@ -149,7 +149,7 @@ describe('phase 4 exit gate: approval gate and review', () => {
     const api = await getApi();
     if (!api) { return; }
 
-    const marker = 'forgeguard-command-ok';
+    const marker = 'trueguard-command-ok';
     // A fresh session: the fake provider only calls a tool in a conversation
     // that has no tool result yet.
     api.sessions.newChat();

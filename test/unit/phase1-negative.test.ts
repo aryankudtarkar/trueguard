@@ -37,9 +37,9 @@ function fakeContext() {
 }
 
 function fakeServerManager(baseUrl: string): ServerManager {
-  vscode.workspace.configOverrides.set('forgeguard.trueforge.baseUrl', baseUrl);
+  vscode.workspace.configOverrides.set('trueguard.trueforge.baseUrl', baseUrl);
   const sm = new ServerManager(fakeContext() as never);
-  vscode.workspace.configOverrides.delete('forgeguard.trueforge.baseUrl');
+  vscode.workspace.configOverrides.delete('trueguard.trueforge.baseUrl');
   return sm;
 }
 

@@ -1,6 +1,14 @@
-# ForgeGuard: Product Requirements and Autonomous Build Plan
+# TrueGuard: Product Requirements and Autonomous Build Plan
 
 Owner: Aryan Kudtarkar. Event: TrueFoundry Forge-a-thon, Techfest 2026-27, IIT Bombay. Builder: Oh My Pi (autonomous). Window: 3 days, solo. Version 1.0.
+
+> **Amended 2026-11-14 (owner decision).** The product was renamed from
+> "ForgeGuard" to **TrueGuard**. The extension id is now
+> `trueguard-dev.trueguard`, the commands are `trueguard.*`, and the settings
+> live under `trueguard.*`. The rationale and the full list of changed
+> identifiers are in docs/DECISIONS.md (2026-11-14 — the product is
+> TrueGuard). Every other requirement in this document is unchanged.
+
 
 ## 0. How to use this document
 
@@ -14,7 +22,7 @@ This is the single source of truth for the build. Read all of it before writing 
 
 ## 1. Summary
 
-ForgeGuard is a VS Code extension that puts an autonomous coding agent inside the editor. The agent loop runs entirely on TrueForge (@truefoundry/trueforge, TrueFoundry's open-source agent harness). The extension is a client: it creates sessions, streams events, exposes editor capabilities to the agent as MCP tools, and owns everything the user sees and touches.
+TrueGuard is a VS Code extension that puts an autonomous coding agent inside the editor. The agent loop runs entirely on TrueForge (@truefoundry/trueforge, TrueFoundry's open-source agent harness). The extension is a client: it creates sessions, streams events, exposes editor capabilities to the agent as MCP tools, and owns everything the user sees and touches.
 
 Its difference is trust. It makes three guarantees:
 
@@ -63,8 +71,8 @@ Primary user: a developer who uses agents on real repositories and has been burn
 
 ### FR-1 Setup and TrueForge lifecycle (P0)
 
-- Command ForgeGuard: Start TrueForge spawns `npx @truefoundry/trueforge@latest` \[VERIFY\] as a child process, with the environment needed to allow loopback MCP calls \[VERIFY: OUTBOUND\_URL\_ALLOWED\_HOSTS or NETWORK\_POLICY\_ENABLED=false\]. Output streams to the ForgeGuard log channel.
-- Health check against baseUrl (setting forgeguard.trueforge.baseUrl, default http://localhost:8790 \[VERIFY\]). States: Stopped, Starting, Ready, Failed.
+- Command TrueGuard: Start TrueForge spawns `npx @truefoundry/trueforge@latest` \[VERIFY\] as a child process, with the environment needed to allow loopback MCP calls \[VERIFY: OUTBOUND\_URL\_ALLOWED\_HOSTS or NETWORK\_POLICY\_ENABLED=false\]. Output streams to the TrueGuard log channel.
+- Health check against baseUrl (setting trueguard.trueforge.baseUrl, default http://localhost:8790 \[VERIFY\]). States: Stopped, Starting, Ready, Failed.
 - The extension kills only a server process it spawned, on deactivate.
 - Provider keys live in SecretStorage and are never logged. Registering models, agents and the MCP connector with TrueForge happens through the verified SDK or REST path \[VERIFY\].
 - AC: from a clean state the user reaches Ready in 3 clicks or fewer. Each failure state names the cause and offers one fix action.
@@ -119,23 +127,23 @@ Specified in section 6. Requirements: pending reviews live in a persistent Chang
 
 - run\_command always requires approval through the gate. No auto-approve in v1.
 - The approval card shows the verbatim command and cwd. Risky patterns (rm -rf, git push, sudo, curl piped to a shell, chmod -R) get a warning style. They are highlighted, not silently blocked.
-- Runs with a shell, cwd inside the workspace, default timeout 120 s (setting). Output streams to a ForgeGuard Commands output channel. The result to the agent is exit code, duration and the last 16 KB of combined output with an explicit truncation marker.
+- Runs with a shell, cwd inside the workspace, default timeout 120 s (setting). Output streams to a TrueGuard Commands output channel. The result to the agent is exit code, duration and the last 16 KB of combined output with an explicit truncation marker.
 - Cancel kills the whole process tree (taskkill /T /F on Windows).
 
 ### FR-7 Failover (P0)
 
-- Setting forgeguard.models: ordered list of model profiles, each with id, label and the identifier TrueForge expects \[VERIFY\]. Index 0 is primary.
+- Setting trueguard.models: ordered list of model profiles, each with id, label and the identifier TrueForge expects \[VERIFY\]. Index 0 is primary.
 - Error classes: transient (429, 500, 502, 503, 504, timeout, connection reset, stream stall), provider-fatal (401, 403, quota exhausted), request-fatal (400, context length exceeded; not failed over), unknown (treated as transient once).
 - Behavior: for 429 honor Retry-After up to a 5 s cap, then switch. At most one attempt per model per turn. A circuit breaker marks a model unhealthy for 60 s, after which a probe returns traffic to the primary.
 - Idempotency: tool calls that already ran in a failed turn MUST NOT run again. The resume strategy is chosen in Phase 0 from \[VERIFY\] findings: preferred is continuing the same TrueForge session with a model override; fallback is a new session seeded with a condensed transcript.
 - Visibility: inline notice row in chat, status bar warning state, log line, and a small model label on each agent message.
-- Dev-only fault injection: commands to inject 429, 503, timeout or 401 on the next model call, and to corrupt the next write (for demo scenario D3). Enabled only in Development mode or when forgeguard.dev.enableFaultInjection is true.
+- Dev-only fault injection: commands to inject 429, 503, timeout or 401 on the next model call, and to corrupt the next write (for demo scenario D3). Enabled only in Development mode or when trueguard.dev.enableFaultInjection is true.
 
 AC: an injected 429 on the primary completes the turn on the secondary with a visible notice and no duplicated tool execution. With every model down, the user gets a clear error with Retry and Edit Models actions.
 
 ### FR-8 Observability and settings (P0)
 
-- LogOutputChannel named ForgeGuard with levels. A redacted JSON event log per session in globalStorage, opened by ForgeGuard: Show Session Log.
+- LogOutputChannel named TrueGuard with levels. A redacted JSON event log per session in globalStorage, opened by TrueGuard: Show Session Log.
 - All configuration through contributed settings, using the native Settings UI. No custom settings page.
 
 ### FR-9 Context hygiene (P1)
@@ -171,10 +179,10 @@ Each applied change set stores a snapshot. A Revert action on the receipt card r
 
 ### 6.3 Information architecture
 
-- Activity Bar container ForgeGuard with two views: Chat (webview) and Changes (tree). Users may drag either to the Secondary Side Bar.
+- Activity Bar container TrueGuard with two views: Chat (webview) and Changes (tree). Users may drag either to the Secondary Side Bar.
 - Editor area: the native diff editor for review.
 - Status bar: one item, left side.
-- Command Palette: ForgeGuard: New Chat, Start TrueForge, Stop Turn, Switch Model, Review Next Change, Accept Hunk, Reject Hunk, Accept All, Reject All, Show Session Log (plus dev-only fault commands).
+- Command Palette: TrueGuard: New Chat, Start TrueForge, Stop Turn, Switch Model, Review Next Change, Accept Hunk, Reject Hunk, Accept All, Reject All, Show Session Log (plus dev-only fault commands).
 
 ### 6.4 Chat view
 
@@ -203,7 +211,7 @@ Experiment (P1): CodeLens above hunks inside the diff editor. Ship only if verif
 
 ### 6.7 Status bar item
 
-- Idle: `$(shield) ForgeGuard`. Working: `$(loading~spin) Working`. Pending: `$(eye) 2 to review`.
+- Idle: `$(shield) TrueGuard`. Working: `$(loading~spin) Working`. Pending: `$(eye) 2 to review`.
 - Failover active: `$(warning) Model B`, using the warning background. Server down: `$(error) TrueForge offline`, using the error background.
 - Click opens the relevant QuickPick or view. Tooltip explains the state in a full sentence.
 
@@ -218,7 +226,7 @@ Calm, plain, specific, no exclamation marks, no blame.
 | Verification failed | The file did not match what you approved, so it was restored. Nothing was lost. |
 | Conflict | This file changed after the agent proposed edits. Review again to continue. |
 | Failover | Switched to Model B because Model A is rate-limited. |
-| Server down | ForgeGuard can not reach TrueForge. Start it, or check the address in Settings. |
+| Server down | TrueGuard can not reach TrueForge. Start it, or check the address in Settings. |
 | All models down | No model is available right now. Retry, or edit your model list. |
 
 ### 6.9 Accessibility
@@ -286,7 +294,7 @@ Concurrency: one active turn per session. Applies are serialized per file by a m
 ## 10. Repository layout and tooling
 
 ```
-forgeguard/
+trueguard/
   package.json  tsconfig.json  esbuild.mjs  eslint.config.mjs  vitest.config.ts
   src/  extension.ts  core/  trueforge/  mcp/  edits/  review/  failover/  ui/  util/
   webview/  main.ts  styles.css  protocol.ts
@@ -377,7 +385,7 @@ Owner prerequisites for Phase 0: network access for npm, a Node 22 or newer runt
 
 Tasks:
 
-- 1.1 extension.ts with lazy activation, contributes for the ForgeGuard Activity Bar container, the Chat and Changes views, commands, and the settings schema (baseUrl, models, timeouts, caps, dev flags).
+- 1.1 extension.ts with lazy activation, contributes for the TrueGuard Activity Bar container, the Chat and Changes views, commands, and the settings schema (baseUrl, models, timeouts, caps, dev flags).
 - 1.2 Logger (LogOutputChannel), zod schemas folder, hashing and mutex utilities.
 - 1.3 ServerManager: start, health check, stop, state events, and the viewsWelcome content for Stopped and Failed.
 - 1.4 TrueForgeClient: typed wrapper over the verified API, SSE reader with abort, reconnect with backoff, event parsing through zod.
@@ -529,7 +537,7 @@ Success metrics: zero silent bad writes across all demo runs, failover overhead 
 
 ### 14.1 Defaults for open questions (use these, log in DECISIONS, do not stop)
 
-- Product name ForgeGuard. Extension id forgeguard, publisher forgeguard-dev. License MIT.
+- Product name TrueGuard. Extension id trueguard, publisher trueguard-dev. License MIT.
 - Auto-save after apply: on. MCP port 45821 with fallback to the next free port.
 - Models: index 0 is the strongest model the owner has a key for, index 1 is a model from a different provider so a provider outage can be demonstrated.
 - Tool output cap 16 KB. Command timeout 120 s. Session history 20.

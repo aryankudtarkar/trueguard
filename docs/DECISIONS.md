@@ -52,9 +52,9 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 
 ## 2026-11-12 — Repo name and location
 
-- **Context:** PRD calls the folder `forgeguard/`; the workspace is `~/Desktop/trueguard`.
+- **Context:** PRD calls the folder `trueguard/`; the workspace is `~/Desktop/trueguard`.
 - **Choice:** build in place at `~/Desktop/trueguard`; package name stays
-  `forgeguard` (publisher `forgeguard-dev`), matching PRD defaults.
+  `trueguard` (publisher `trueguard-dev`), matching PRD defaults.
 - **Consequence:** none beyond path naming.
 
 ## 2026-11-12 — Task 2.4 "reconnect with backoff" interpretation (R12 default)
@@ -95,8 +95,39 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 - **Consequence:** the agent can always parse a tool result, and the marker
   tells it how to narrow the request.
 
-## 2026-11-12 — A failover continues the task; it never restarts it
+## 2026-11-14 — The product is TrueGuard (owner decision)
 
+- **Context:** the extension was built as "ForgeGuard" while the repository and
+  the product were called TrueGuard. Two names for one thing is the kind of
+  inconsistency that costs points in a demo and in a review.
+- **Decision (owner):** rename the product to **TrueGuard**, everywhere —
+  including the identifiers that are public API surfaces.
+- **What changed:**
+  | Was | Now |
+  | --- | --- |
+  | `forgeguard-dev.forgeguard` (extension id) | `trueguard-dev.trueguard` |
+  | `forgeguard.*` (commands) | `trueguard.*` |
+  | `forgeguard.*` (settings) | `trueguard.*` |
+  | `forgeguard.chatView`, `forgeguard.changesView` | `trueguard.chatView`, `trueguard.changesView` |
+  | `forgeguard-container` (activity bar) | `trueguard-container` |
+  | `forgeguard-editor` (MCP connector) | `trueguard-editor` |
+  | `media/forgeguard.svg` | `media/trueguard.svg` |
+  | the "ForgeGuard" output channel | the "TrueGuard" output channel |
+- **Why the identifiers too:** the extension id, the command ids and the
+  settings namespace are permanent public surfaces. Nothing is released yet, so
+  renaming now is free; renaming after the demo would break every keybinding
+  and every published setting.
+- **Consequence:** `prd-and-plan.md` was amended with a header note (the
+  document's own rule is "never edit it, propose changes here" — the owner
+  authorised the rename, and the change is recorded here and in the header).
+  The git history keeps the old names in the older commits, as a rename's
+  history should.
+- **Publisher:** `trueguard-dev`. To publish to the marketplace, an account
+  with that publisher id must exist; `aryankudtarkar` works too if preferred
+  (change `publisher` in package.json and the extension id in
+  test/integration/*).
+
+## 2026-11-12 — A failover continues the task; it never restarts it
 - **Context:** cline/cline#713 reports that Cline's retry *"doesn't continue
   the task, but it starts again. So it generates an infinite loop and money
   consuming."* Our Phase 6 implementation had the same shape: it re-sent the
@@ -115,8 +146,8 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 - **Context:** cline/cline discussion #10465 notes that Cline's retry count is
   a compile-time constant (`maxRetries: 3`) with no UI visibility and no
   tunable backoff.
-- **Choice:** `forgeguard.failover.enabled` and
-  `forgeguard.failover.breakerCooldownSec` are contributed settings, and the
+- **Choice:** `trueguard.failover.enabled` and
+  `trueguard.failover.breakerCooldownSec` are contributed settings, and the
   chat shows exactly one row per failover plus the model label on every agent
   message.
 - **Consequence:** the user can see and tune the policy instead of guessing.
@@ -124,7 +155,7 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 ## 2026-11-12 — A redacted per-session event log (FR-8)
 
 - **Context:** FR-8 asks for "a redacted JSON event log per session in
-  globalStorage, opened by ForgeGuard: Show Session Log". Neither Cline nor
+  globalStorage, opened by TrueGuard: Show Session Log". Neither Cline nor
   Continue exposes an inspectable per-session event log (see
   docs/COMPETITIVE.md).
 - **Choice:** every turn event is appended to

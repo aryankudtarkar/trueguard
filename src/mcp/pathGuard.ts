@@ -129,7 +129,7 @@ export class PathGuard {
     if (isSecretFile(base)) {
       throw new PathGuardError(
         'secret',
-        `refusing to read a secret file (${base}). Enable "ForgeGuard: Allow Secret Reads" to allow it.`,
+        `refusing to read a secret file (${base}). Enable "TrueGuard: Allow Secret Reads" to allow it.`,
       );
     }
   }

@@ -114,7 +114,7 @@ describe('the working directory guard', () => {
   });
 
   it('accepts a directory inside the workspace', async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), 'forgeguard-cwd-'));
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'trueguard-cwd-'));
     const resolved = await resolveCommandCwd(dir, [dir]);
     expect(resolved).toBeDefined();
     await rm(dir, { recursive: true, force: true });

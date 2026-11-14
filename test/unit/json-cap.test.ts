@@ -54,7 +54,7 @@ describe('truncateMiddle', () => {
   it('elides the middle of an over-cap text with a marker', () => {
     const res = truncateMiddle('x'.repeat(5000), 1000);
     expect(res.truncated).toBe(true);
-    expect(res.text).toContain('ForgeGuard: output truncated');
+    expect(res.text).toContain('TrueGuard: output truncated');
     expect(res.text.length).toBeLessThan(1400);
   });
 

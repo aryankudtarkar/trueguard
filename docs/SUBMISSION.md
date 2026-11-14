@@ -1,6 +1,6 @@
-# Submission — ForgeGuard
+# Submission — TrueGuard
 
-**Team:** ForgeGuard (owner: Aryan Kudtarkar)
+**Team:** TrueGuard (owner: Aryan Kudtarkar)
 **Event:** TrueFoundry Forge-a-thon, Techfest 2026-27, IIT Bombay
 **Built from scratch** — not a fork of any existing extension.
 
@@ -14,14 +14,14 @@ is a trust failure, not a capability failure:
    applies it blind.
 3. **Fragile sessions** — one rate limit and the work stops.
 
-ForgeGuard fixes the trust, not the model. It is a VS Code extension that
+TrueGuard fixes the trust, not the model. It is a VS Code extension that
 runs the agent loop on TrueForge and owns everything the user sees:
 
 - **G1 — Nothing reaches disk without explicit, hunk-level approval.**
   The extension computes the diff itself (a zero-context Myers diff), the
   user accepts or rejects each hunk, and one WorkspaceEdit applies exactly
   the accepted ones.
-- **G2 — The agent can never claim an edit succeeded unless ForgeGuard
+- **G2 — The agent can never claim an edit succeeded unless TrueGuard
   verified it.** Every write is verified against the editor buffer *and* the
   disk. A mismatch restores the file and the agent is told the truth.
 - **G3 — A provider failure does not end the session.** 429s, 5xx and
@@ -42,7 +42,7 @@ The comparison against Cline and Continue — with links to the public issues
 behind every claim — is in [docs/COMPETITIVE.md](docs/COMPETITIVE.md). The
 short version: the competitors retry the same model and let a failed task die
 or restart it; they rewrite whole files; and they report success without
-checking the disk. ForgeGuard continues on another model, reviews every hunk,
+checking the disk. TrueGuard continues on another model, reviews every hunk,
 and verifies every write.
 
 ## Screenshots

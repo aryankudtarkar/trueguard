@@ -126,7 +126,7 @@ export function runCommand(request: RunRequest, options: RunOptions = {}): Promi
     };
 
     child.on('error', (e) => {
-      options.onOutput?.(`\n[forgeguard] could not run the command: ${e.message}\n`);
+      options.onOutput?.(`\n[trueguard] could not run the command: ${e.message}\n`);
       finish(127, null);
     });
 

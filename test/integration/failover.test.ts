@@ -17,7 +17,7 @@ import type { StreamingEvent } from '../../src/trueforge/schemas';
 
 const FAKE_LLM = 'http://127.0.0.1:8799';
 
-interface ForgeGuardApi {
+interface TrueGuardApi {
   sessions: {
     sendTurn(
       input: unknown[],
@@ -38,11 +38,11 @@ async function probe(url: string): Promise<boolean> {
 describe('phase 6 exit gate: failover', () => {
   it('continues the turn on the fallback model and tells the user once', async () => {
     if (!(await probe(`${FAKE_LLM}/set-mode`))) { return; } // no fake provider: skip
-    const ext = vscode.extensions.getExtension('forgeguard-dev.forgeguard');
+    const ext = vscode.extensions.getExtension('trueguard-dev.trueguard');
     if (!ext) { return; }
-    const api = (await ext.activate()) as unknown as ForgeGuardApi;
+    const api = (await ext.activate()) as unknown as TrueGuardApi;
 
-    const config = vscode.workspace.getConfiguration('forgeguard');
+    const config = vscode.workspace.getConfiguration('trueguard');
     const previous = config.get<Array<{ id: string; label: string; ref: string }>>('models', []);
     await config.update(
       'models',

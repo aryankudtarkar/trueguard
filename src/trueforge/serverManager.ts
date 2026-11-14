@@ -34,7 +34,7 @@ export class ServerManager implements vscode.Disposable {
   }
 
   static baseUrl(): string {
-    const cfg = vscode.workspace.getConfiguration('forgeguard.trueforge');
+    const cfg = vscode.workspace.getConfiguration('trueguard.trueforge');
     return String(cfg.get('baseUrl', 'http://localhost:8790'));
   }
 

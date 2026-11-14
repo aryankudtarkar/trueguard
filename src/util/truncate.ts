@@ -3,7 +3,7 @@
  * with a marker telling the agent how to request a narrower range.
  *
  * The cap is expressed in BYTES (UTF-8), because that is what the setting
- * `forgeguard.toolOutputCapBytes` means and what the agent actually pays for.
+ * `trueguard.toolOutputCapBytes` means and what the agent actually pays for.
  * Cuts always land on character boundaries, so no replacement characters are
  * produced.
  */
@@ -52,7 +52,7 @@ export function truncateMiddle(text: string, maxBytes: number = DEFAULT_MAX_BYTE
   const head = buf.subarray(0, headLen).toString('utf8');
   const tail = tailLen > 0 ? buf.subarray(buf.length - tailLen).toString('utf8') : '';
   const marker =
-    `\n[ForgeGuard: output truncated — total ${buf.length} bytes, showing first ${headLen}` +
+    `\n[TrueGuard: output truncated — total ${buf.length} bytes, showing first ${headLen}` +
     ` and last ${tailLen}. Narrow the request (startLine/endLine, glob, maxResults) to see more.]\n`;
   return { text: `${head}${marker}${tail}`, truncated: true };
 }

@@ -1,4 +1,4 @@
-# Where ForgeGuard is ahead — and why
+# Where TrueGuard is ahead — and why
 
 A comparison against the two extensions people actually compare it to. **Every
 claim below is backed by a link to a public issue or discussion**, because a
@@ -14,7 +14,7 @@ date.
 | | |
 | --- | --- |
 | **Their gap** | cline/cline#13606 (open, 2026-08-27): *"Task aborts on transient API errors (timeouts, provider outages) instead of retrying — requires manual Retry and constant babysitting."* cline/cline#10139 (open): a 429 with a long `retry-after` is *retried* rather than surfaced, and WAIT is not distinguished from STOP. The retry count is hard-coded (`maxRetries: 3`) with no UI visibility and no tunable backoff — cline/cline discussion #10465. |
-| **What we do** | The turn continues on the next model: a classifier (`src/failover/classifier.ts`), an ordered model list, one attempt per model per turn, a circuit breaker with a 60 s cooldown and a probe back to the primary, and **one** calm notice in the chat. The policy is visible and tunable (`forgeguard.failover.*`). |
+| **What we do** | The turn continues on the next model: a classifier (`src/failover/classifier.ts`), an ordered model list, one attempt per model per turn, a circuit breaker with a 60 s cooldown and a probe back to the primary, and **one** calm notice in the chat. The policy is visible and tunable (`trueguard.failover.*`). |
 | **Proof** | `test/unit/failover-manager.test.ts` (15 tests), `test/unit/classifier.test.ts` (13 tests), and the live gate `test/integration/failover.test.ts`: an injected 429 completes the turn on the fallback model with exactly one notice. |
 
 ## 2. "Retry" restarts the task instead of continuing it (Cline — and we had it too)
@@ -65,7 +65,7 @@ failover — the same trap. Reading Cline's issue is what caught it.
 | | |
 | --- | --- |
 | **Their gap** | The retry count is a compile-time constant with no UI (cline/cline discussion #10465); WAIT and STOP are not distinguished (#10139). |
-| **What we do** | `forgeguard.failover.enabled` and `forgeguard.failover.breakerCooldownSec` are real settings; the chat shows one row, the status bar shows the model in use, and each agent message carries the model that produced it. |
+| **What we do** | `trueguard.failover.enabled` and `trueguard.failover.breakerCooldownSec` are real settings; the chat shows one row, the status bar shows the model in use, and each agent message carries the model that produced it. |
 | **Proof** | `test/unit/resume-semantics.test.ts` ("the failover settings"). |
 
 ## 8. What neither of them has: a redacted session log
@@ -75,8 +75,8 @@ extension's global state, but neither exposes a **per-session, redacted,
 inspectable event log** that answers *"what did the agent actually see and
 do?"* after the fact.
 
-ForgeGuard writes every turn event to `globalStorage/sessions/<id>.jsonl`,
-with keys and bearer tokens redacted, and **ForgeGuard: Show Session Log**
+TrueGuard writes every turn event to `globalStorage/sessions/<id>.jsonl`,
+with keys and bearer tokens redacted, and **TrueGuard: Show Session Log**
 opens it. It is the artefact you need when a demo goes sideways or a user
 reports something surprising.
 
@@ -84,7 +84,7 @@ reports something surprising.
 
 ## The honest summary
 
-| Capability | Cline | Continue | ForgeGuard |
+| Capability | Cline | Continue | TrueGuard |
 | --- | --- | --- | --- |
 | Continues on another model after a provider failure | Retry, same model | Retry, same model | **Yes, with a breaker** |
 | A retry continues the task instead of restarting it | No (#713) | No | **Yes** |

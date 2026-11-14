@@ -13,7 +13,7 @@
 test:int **19/19** ✓ (real VS Code), design-lint ✓ (now with the stricter
 rules).
 
-`npm run package` → `forgeguard-0.1.0.vsix`, 11 files, 328 KB.
+`npm run package` → `trueguard-0.1.0.vsix`, 11 files, 328 KB.
 
 ## A2 Conformance matrix (PRD 6.2–6.10, 8, 9, section 10)
 
@@ -35,7 +35,7 @@ rules).
 | 8.2 The quick start works from a fresh clone | Partial | `npm install && npm run setup && npm run trueforge` works; the README says so. The five-minute claim was not timed end to end with a human (the owner should walk it once) |
 | 8.3 `scripts/demo-prepare.mjs` | Pass | clones the benchmark, pins a commit, writes the demo prompts |
 | 8.4 `docs/DEMO.md` | Pass | the timed script D1–D5 and the recording checklist |
-| 8.5 The `.vsix` and the third-party notices | Pass | `forgeguard-0.1.0.vsix` (328 KB, 11 files); the dependencies are MIT/BSD/Apache-2.0 |
+| 8.5 The `.vsix` and the third-party notices | Pass | `trueguard-0.1.0.vsix` (328 KB, 11 files); the dependencies are MIT/BSD/Apache-2.0 |
 | 8.7 `docs/SUBMISSION.md` | Pass | the pitch, the screenshots list, the brief mapping, the honest limitations |
 | 9 TypeScript strict, no `any` outside validated boundaries | Pass | `tsc --noEmit` with `strict`; the only casts are documented |
 | 9 Reliability: every disposable registered, no unhandled rejections | Pass | the audit of each phase; the extension registers every disposable |

@@ -47,7 +47,7 @@ describe('phase 2 exit gate: real TrueForge + editor MCP server', () => {
     if (!(await probe(`${BASE_URL}/api/v1/users`))) { ctx.skip(); }
     if (!(await probeFakeLlm())) { ctx.skip(); }
 
-    const root = await mkdtemp(path.join(os.tmpdir(), 'forgeguard-e2g-'));
+    const root = await mkdtemp(path.join(os.tmpdir(), 'trueguard-e2g-'));
     await mkdir(path.join(root, 'src'), { recursive: true });
     await writeFile(
       path.join(root, 'src/app.ts'),
@@ -78,7 +78,7 @@ describe('phase 2 exit gate: real TrueForge + editor MCP server', () => {
         type: 'remote',
         name: MCP_SERVER_NAME,
         url: endpoint.url,
-        description: 'ForgeGuard editor tools: read-only workspace access from the agent.',
+        description: 'TrueGuard editor tools: read-only workspace access from the agent.',
         auth: { type: 'header', headers: { authorization: `Bearer ${endpoint.token}` } },
       });
 
@@ -86,7 +86,7 @@ describe('phase 2 exit gate: real TrueForge + editor MCP server', () => {
 
       const session = await client.createSession({
         model: { name: 'fake-provider/test-model' },
-        instructions: 'You are ForgeGuard, a careful coding agent inside VS Code.',
+        instructions: 'You are TrueGuard, a careful coding agent inside VS Code.',
         mcp_servers: [
           {
             name: MCP_SERVER_NAME,
@@ -116,7 +116,7 @@ describe('phase 2 exit gate: real TrueForge + editor MCP server', () => {
       await writeFile(
         path.join(process.cwd(), 'docs', 'spikes', 'phase2-exit-gate-transcript.md'),
         [
-          '# Phase 2 exit gate — real TrueForge + ForgeGuard editor MCP server',
+          '# Phase 2 exit gate — real TrueForge + TrueGuard editor MCP server',
           '',
           `- date: ${new Date().toISOString()}`,
           `- connector: ${MCP_SERVER_NAME} at ${endpoint.url} (bearer auth)`,

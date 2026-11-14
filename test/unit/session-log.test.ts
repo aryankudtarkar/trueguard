@@ -6,7 +6,7 @@ import { SessionLog, redactValue } from '../../src/util/sessionLog';
 
 describe('the session log', () => {
   it('writes one JSON line per event', async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), 'forgeguard-log-'));
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'trueguard-log-'));
     const log = new SessionLog(dir);
     await log.append('session-1', 'turn.created', { turn_id: 't1' });
     await log.append('session-1', 'tool.response', { tool_call_id: 'c1' });
@@ -21,7 +21,7 @@ describe('the session log', () => {
   });
 
   it('never writes a secret', async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), 'forgeguard-log-'));
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'trueguard-log-'));
     const log = new SessionLog(dir);
     await log.append('session-2', 'turn.created', {
       authorization: 'Bearer sk-abcdef123456',
@@ -44,7 +44,7 @@ describe('the session log', () => {
   });
 
   it('finds the most recent log file', async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), 'forgeguard-log-'));
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'trueguard-log-'));
     const log = new SessionLog(dir);
     await log.append('older', 'turn.created', {});
     await new Promise((r) => setTimeout(r, 10));
@@ -56,7 +56,7 @@ describe('the session log', () => {
   });
 
   it('survives a directory that does not exist', async () => {
-    const log = new SessionLog(path.join(os.tmpdir(), 'forgeguard-log-missing', 'nested'));
+    const log = new SessionLog(path.join(os.tmpdir(), 'trueguard-log-missing', 'nested'));
     await log.append('s', 'turn.created', {});
     expect(log.countFor('s')).toBe(1);
   });

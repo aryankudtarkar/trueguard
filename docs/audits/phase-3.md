@@ -24,7 +24,7 @@ overall 94.7 %. Thresholds are enforced in `vitest.config.ts` (85/85/80/85).
 | 3.4 ChangeStore state machine with typed events and illegal-transition guards | Pass | `src/edits/store.ts`; `edits-store.test.ts` (11 tests) |
 | 3.5 Snapshot + Applier: single WorkspaceEdit, per-file mutex, base-hash conflict check, save | Pass | `src/edits/apply.ts`, `src/edits/vscodeBridge.ts`; integration "writes a change to disk and verifies it", "undoes the whole change with one undo step" |
 | 3.6 Verifier: buffer check, disk check, automatic rollback, truthful result | Pass | `edits-apply.test.ts` (12 tests); integration "catches a corrupted write and rolls it back" |
-| 3.7 Dev fault hook: corrupt the next write | Pass | `src/edits/faults.ts` + command `ForgeGuard: Dev: Corrupt Next Write` (dev flags only) |
+| 3.7 Dev fault hook: corrupt the next write | Pass | `src/edits/faults.ts` + command `TrueGuard: Dev: Corrupt Next Write` (dev flags only) |
 | 3.8 Randomized tests (apply-all == proposed, apply-none == base, untouched regions identical) + real TextDocument integration (dirty buffer, CRLF, BOM, unicode, undo, corruption) | Pass | `edits-random.test.ts` (3 randomized properties over 60+ seeds), `test/integration/edits.test.ts` (7 tests) |
 | FR-4: whole-file replacement of an existing file refused | Pass | `proposal.ts` (`whole_file_rewrite`), `edits-proposal.test.ts` |
 | FR-4: create only for paths that do not exist; delete only for paths that exist | Pass | `edits-proposal.test.ts` |

@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 
 let channel: vscode.LogOutputChannel | undefined;
 
-/** The shared ForgeGuard log channel (created on first use). */
+/** The shared TrueGuard log channel (created on first use). */
 export function logger(): vscode.LogOutputChannel {
   if (!channel) {
-    channel = vscode.window.createOutputChannel('ForgeGuard', { log: true });
+    channel = vscode.window.createOutputChannel('TrueGuard', { log: true });
   }
   return channel;
 }

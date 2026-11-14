@@ -66,7 +66,7 @@ describe('editor MCP server in real VS Code', () => {
 
     const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
     const editor = await vscode.window.showTextDocument(doc);
-    const marker = `// forgeguard-dirty-${Date.now()}`;
+    const marker = `// trueguard-dirty-${Date.now()}`;
     await editor.edit((b) => {
       b.insert(new vscode.Position(0, 0), `${marker}\n`);
     });

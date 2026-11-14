@@ -32,7 +32,7 @@ review ended in the state `verified` with the note "Verified against disk".
 | FR-4: the result to the agent is truthful JSON | Pass | `ApplyResult` (`status`, `files`, `note`); the review note says "Verified against disk" |
 | FR-5: pending reviews live in a persistent view, not a notification | Pass | the Changes view (tree) is the only place a review appears |
 | FR-5: pending approvals never auto-expire | Pass | the DecisionStore keeps waiting (10 min default, and the review stays in the view) |
-| FR-5: stopping a turn denies all pending approvals for it | Pass | `forgeguard.stopTurn` and the chat Stop button call `denyAllPending` |
+| FR-5: stopping a turn denies all pending approvals for it | Pass | `trueguard.stopTurn` and the chat Stop button call `denyAllPending` |
 | PRD 6.6: the user unchecks hunks, then applies the selection | Pass | checkboxes on the hunk nodes, `Apply Selected` applies exactly those hunks |
 
 ## A3 Adversarial review

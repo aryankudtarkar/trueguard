@@ -16,7 +16,7 @@ import { BOM } from '../../src/edits/text';
  */
 
 async function tempDir(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), 'forgeguard-edits-'));
+  return fs.mkdtemp(path.join(os.tmpdir(), 'trueguard-edits-'));
 }
 
 async function writeFile(dir: string, name: string, content: string): Promise<string> {

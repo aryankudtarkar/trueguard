@@ -1,9 +1,9 @@
 {
-  "name": "forgeguard",
-  "displayName": "ForgeGuard",
+  "name": "trueguard",
+  "displayName": "TrueGuard",
   "description": "A trustworthy autonomous coding agent in VS Code, running on TrueForge.",
   "version": "0.1.0",
-  "publisher": "forgeguard-dev",
+  "publisher": "trueguard-dev",
   "license": "MIT",
   "private": true,
   "engines": {
@@ -15,169 +15,169 @@
     "Chat"
   ],
   "activationEvents": [
-    "onView:forgeguard.chatView",
-    "onCommand:forgeguard.startTrueForge"
+    "onView:trueguard.chatView",
+    "onCommand:trueguard.startTrueForge"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "forgeguard-container",
-          "title": "ForgeGuard",
-          "icon": "media/forgeguard.svg"
+          "id": "trueguard-container",
+          "title": "TrueGuard",
+          "icon": "media/trueguard.svg"
         }
       ]
     },
     "views": {
-      "forgeguard-container": [
+      "trueguard-container": [
         {
           "type": "webview",
-          "id": "forgeguard.chatView",
+          "id": "trueguard.chatView",
           "name": "Chat"
         },
         {
           "type": "tree",
-          "id": "forgeguard.changesView",
+          "id": "trueguard.changesView",
           "name": "Changes"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "forgeguard.chatView",
-        "contents": "ForgeGuard puts a careful coding agent here. Start TrueForge to begin.\n[Start TrueForge](command:forgeguard.startTrueForge)\nNothing is written to your files without your review."
+        "view": "trueguard.chatView",
+        "contents": "TrueGuard puts a careful coding agent here. Start TrueForge to begin.\n[Start TrueForge](command:trueguard.startTrueForge)\nNothing is written to your files without your review."
       },
       {
-        "view": "forgeguard.changesView",
+        "view": "trueguard.changesView",
         "contents": "No changes waiting.\nWhen the agent proposes an edit, it appears here for review."
       }
     ],
     "commands": [
       {
-        "command": "forgeguard.startTrueForge",
-        "title": "ForgeGuard: Start TrueForge",
-        "category": "ForgeGuard"
+        "command": "trueguard.startTrueForge",
+        "title": "TrueGuard: Start TrueForge",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.stopTrueForge",
-        "title": "ForgeGuard: Stop TrueForge",
-        "category": "ForgeGuard"
+        "command": "trueguard.stopTrueForge",
+        "title": "TrueGuard: Stop TrueForge",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.newChat",
-        "title": "ForgeGuard: New Chat",
-        "category": "ForgeGuard"
+        "command": "trueguard.newChat",
+        "title": "TrueGuard: New Chat",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.stopTurn",
-        "title": "ForgeGuard: Stop Turn",
-        "category": "ForgeGuard"
+        "command": "trueguard.stopTurn",
+        "title": "TrueGuard: Stop Turn",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.switchModel",
-        "title": "ForgeGuard: Switch Model",
-        "category": "ForgeGuard"
+        "command": "trueguard.switchModel",
+        "title": "TrueGuard: Switch Model",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.showSessionLog",
-        "title": "ForgeGuard: Show Session Log",
-        "category": "ForgeGuard"
+        "command": "trueguard.showSessionLog",
+        "title": "TrueGuard: Show Session Log",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.reviewNextChange",
-        "title": "ForgeGuard: Review Next Change",
-        "category": "ForgeGuard"
+        "command": "trueguard.reviewNextChange",
+        "title": "TrueGuard: Review Next Change",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.acceptHunk",
-        "title": "ForgeGuard: Accept Hunk",
-        "category": "ForgeGuard"
+        "command": "trueguard.acceptHunk",
+        "title": "TrueGuard: Accept Hunk",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.rejectHunk",
-        "title": "ForgeGuard: Reject Hunk",
-        "category": "ForgeGuard"
+        "command": "trueguard.rejectHunk",
+        "title": "TrueGuard: Reject Hunk",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.acceptAll",
-        "title": "ForgeGuard: Accept All",
-        "category": "ForgeGuard"
+        "command": "trueguard.acceptAll",
+        "title": "TrueGuard: Accept All",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.rejectAll",
-        "title": "ForgeGuard: Reject All",
-        "category": "ForgeGuard"
+        "command": "trueguard.rejectAll",
+        "title": "TrueGuard: Reject All",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.applyChanges",
-        "title": "ForgeGuard: Apply Selected Changes",
-        "category": "ForgeGuard"
+        "command": "trueguard.applyChanges",
+        "title": "TrueGuard: Apply Selected Changes",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.inlineEdit",
-        "title": "ForgeGuard: Inline Edit Selection",
-        "category": "ForgeGuard"
+        "command": "trueguard.inlineEdit",
+        "title": "TrueGuard: Inline Edit Selection",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.review.openDiff",
-        "title": "ForgeGuard: Open Diff",
-        "category": "ForgeGuard"
+        "command": "trueguard.review.openDiff",
+        "title": "TrueGuard: Open Diff",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.dev.corruptNextWrite",
-        "title": "ForgeGuard: Dev: Corrupt Next Write",
-        "category": "ForgeGuard"
+        "command": "trueguard.dev.corruptNextWrite",
+        "title": "TrueGuard: Dev: Corrupt Next Write",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.dev.inject.fail429",
-        "title": "ForgeGuard: Dev: Inject 429 (rate limit)",
-        "category": "ForgeGuard"
+        "command": "trueguard.dev.inject.fail429",
+        "title": "TrueGuard: Dev: Inject 429 (rate limit)",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.dev.inject.fail503",
-        "title": "ForgeGuard: Dev: Inject 503 (server error)",
-        "category": "ForgeGuard"
+        "command": "trueguard.dev.inject.fail503",
+        "title": "TrueGuard: Dev: Inject 503 (server error)",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.dev.inject.fail401",
-        "title": "ForgeGuard: Dev: Inject 401 (bad credentials)",
-        "category": "ForgeGuard"
+        "command": "trueguard.dev.inject.fail401",
+        "title": "TrueGuard: Dev: Inject 401 (bad credentials)",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.dev.inject.stall",
-        "title": "ForgeGuard: Dev: Inject a stalled response",
-        "category": "ForgeGuard"
+        "command": "trueguard.dev.inject.stall",
+        "title": "TrueGuard: Dev: Inject a stalled response",
+        "category": "TrueGuard"
       },
       {
-        "command": "forgeguard.dev.inject.clear",
-        "title": "ForgeGuard: Dev: Clear injected faults",
-        "category": "ForgeGuard"
+        "command": "trueguard.dev.inject.clear",
+        "title": "TrueGuard: Dev: Clear injected faults",
+        "category": "TrueGuard"
       }
     ],
     "keybindings": [
       {
-        "command": "forgeguard.newChat",
+        "command": "trueguard.newChat",
         "key": "ctrl+shift+alt+n",
         "mac": "cmd+shift+alt+n"
       },
       {
-        "command": "forgeguard.stopTurn",
+        "command": "trueguard.stopTurn",
         "key": "ctrl+shift+alt+s",
         "mac": "cmd+shift+alt+s"
       },
       {
-        "command": "forgeguard.acceptHunk",
+        "command": "trueguard.acceptHunk",
         "key": "ctrl+shift+alt+a",
         "mac": "cmd+shift+alt+a"
       },
       {
-        "command": "forgeguard.rejectHunk",
+        "command": "trueguard.rejectHunk",
         "key": "ctrl+shift+alt+r",
         "mac": "cmd+shift+alt+r"
       },
       {
-        "command": "forgeguard.inlineEdit",
+        "command": "trueguard.inlineEdit",
         "key": "ctrl+alt+i",
         "mac": "cmd+alt+i"
       }
@@ -185,83 +185,83 @@
     "menus": {
       "view/title": [
         {
-          "command": "forgeguard.acceptAll",
-          "when": "view == forgeguard.changesView",
+          "command": "trueguard.acceptAll",
+          "when": "view == trueguard.changesView",
           "group": "navigation@1"
         },
         {
-          "command": "forgeguard.rejectAll",
-          "when": "view == forgeguard.changesView",
+          "command": "trueguard.rejectAll",
+          "when": "view == trueguard.changesView",
           "group": "navigation@2"
         },
         {
-          "command": "forgeguard.applyChanges",
-          "when": "view == forgeguard.changesView",
+          "command": "trueguard.applyChanges",
+          "when": "view == trueguard.changesView",
           "group": "navigation@3"
         }
       ],
       "view/item/context": [
         {
-          "command": "forgeguard.acceptHunk",
-          "when": "view == forgeguard.changesView && viewItem == forgeguard.hunk",
+          "command": "trueguard.acceptHunk",
+          "when": "view == trueguard.changesView && viewItem == trueguard.hunk",
           "group": "inline@1"
         },
         {
-          "command": "forgeguard.rejectHunk",
-          "when": "view == forgeguard.changesView && viewItem == forgeguard.hunk",
+          "command": "trueguard.rejectHunk",
+          "when": "view == trueguard.changesView && viewItem == trueguard.hunk",
           "group": "inline@2"
         },
         {
-          "command": "forgeguard.acceptHunk",
-          "when": "view == forgeguard.changesView && viewItem == forgeguard.file",
+          "command": "trueguard.acceptHunk",
+          "when": "view == trueguard.changesView && viewItem == trueguard.file",
           "group": "inline@1"
         },
         {
-          "command": "forgeguard.rejectHunk",
-          "when": "view == forgeguard.changesView && viewItem == forgeguard.file",
+          "command": "trueguard.rejectHunk",
+          "when": "view == trueguard.changesView && viewItem == trueguard.file",
           "group": "inline@2"
         }
       ],
       "commandPalette": [
         {
-          "command": "forgeguard.review.openDiff",
+          "command": "trueguard.review.openDiff",
           "when": "false"
         },
         {
-          "command": "forgeguard.dev.corruptNextWrite",
+          "command": "trueguard.dev.corruptNextWrite",
           "when": "false"
         },
         {
-          "command": "forgeguard.dev.inject.clear",
+          "command": "trueguard.dev.inject.clear",
           "when": "false"
         },
         {
-          "command": "forgeguard.dev.inject.fail429",
+          "command": "trueguard.dev.inject.fail429",
           "when": "false"
         },
         {
-          "command": "forgeguard.dev.inject.fail503",
+          "command": "trueguard.dev.inject.fail503",
           "when": "false"
         },
         {
-          "command": "forgeguard.dev.inject.fail401",
+          "command": "trueguard.dev.inject.fail401",
           "when": "false"
         },
         {
-          "command": "forgeguard.dev.inject.stall",
+          "command": "trueguard.dev.inject.stall",
           "when": "false"
         }
       ]
     },
     "configuration": {
-      "title": "ForgeGuard",
+      "title": "TrueGuard",
       "properties": {
-        "forgeguard.trueforge.baseUrl": {
+        "trueguard.trueforge.baseUrl": {
           "type": "string",
           "default": "http://localhost:8790",
           "description": "Address of the local TrueForge server."
         },
-        "forgeguard.models": {
+        "trueguard.models": {
           "type": "array",
           "items": {
             "type": "object",
@@ -286,42 +286,42 @@
           "default": [],
           "description": "Ordered model profiles. Index 0 is the primary model; failures fall over to the next."
         },
-        "forgeguard.activeModelIndex": {
+        "trueguard.activeModelIndex": {
           "type": "integer",
           "default": 0,
-          "description": "Index into forgeguard.models used for new turns."
+          "description": "Index into trueguard.models used for new turns."
         },
-        "forgeguard.toolOutputCapBytes": {
+        "trueguard.toolOutputCapBytes": {
           "type": "integer",
           "default": 16384,
           "description": "Maximum size of a single tool result returned to the agent, in bytes."
         },
-        "forgeguard.allowSecretReads": {
+        "trueguard.allowSecretReads": {
           "type": "boolean",
           "default": false,
           "description": "Allow the agent to read secret-looking files (.env, *.pem, id_rsa) inside the workspace."
         },
-        "forgeguard.commandTimeoutSec": {
+        "trueguard.commandTimeoutSec": {
           "type": "integer",
           "default": 120,
           "description": "Default timeout for agent-run terminal commands."
         },
-        "forgeguard.dev.enableFaultInjection": {
+        "trueguard.dev.enableFaultInjection": {
           "type": "boolean",
           "default": false,
           "description": "Enable development fault-injection commands (429, 503, timeout, 401)."
         },
-        "forgeguard.contextBudgetBytes": {
+        "trueguard.contextBudgetBytes": {
           "type": "integer",
           "default": 16384,
           "description": "Maximum size of the workspace context attached to a message, in bytes."
         },
-        "forgeguard.failover.enabled": {
+        "trueguard.failover.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Continue a turn on the next model when the provider fails (rate limit, server error, timeout)."
         },
-        "forgeguard.failover.breakerCooldownSec": {
+        "trueguard.failover.breakerCooldownSec": {
           "type": "integer",
           "default": 60,
           "description": "How long a failed model stays out before it is tried again."
@@ -330,35 +330,35 @@
     },
     "walkthroughs": [
       {
-        "id": "forgeguard.gettingStarted",
-        "title": "Get started with ForgeGuard",
-        "description": "ForgeGuard puts a careful coding agent in your editor. Nothing is written to your files without your review.",
+        "id": "trueguard.gettingStarted",
+        "title": "Get started with TrueGuard",
+        "description": "TrueGuard puts a careful coding agent in your editor. Nothing is written to your files without your review.",
         "steps": [
           {
-            "id": "forgeguard.start",
+            "id": "trueguard.start",
             "title": "Start TrueForge",
-            "description": "TrueForge is the agent harness ForgeGuard talks to. Start it and the chat becomes usable.\n[Start TrueForge](command:forgeguard.startTrueForge)",
-            "media": "media/forgeguard.svg",
+            "description": "TrueForge is the agent harness TrueGuard talks to. Start it and the chat becomes usable.\n[Start TrueForge](command:trueguard.startTrueForge)",
+            "media": "media/trueguard.svg",
             "completionEvents": [
-              "onCommand:forgeguard.startTrueForge"
+              "onCommand:trueguard.startTrueForge"
             ]
           },
           {
-            "id": "forgeguard.models",
+            "id": "trueguard.models",
             "title": "Add your models",
-            "description": "ForgeGuard needs at least one model. The first one is the primary; the others are the fallbacks used when a provider fails.\n[Open the model settings](command:workbench.action.openSettings?%22forgeguard.models%22)",
-            "media": "media/forgeguard.svg",
+            "description": "TrueGuard needs at least one model. The first one is the primary; the others are the fallbacks used when a provider fails.\n[Open the model settings](command:workbench.action.openSettings?%22trueguard.models%22)",
+            "media": "media/trueguard.svg",
             "completionEvents": [
               "onCommand:workbench.action.openSettings"
             ]
           },
           {
-            "id": "forgeguard.task",
+            "id": "trueguard.task",
             "title": "Try a first task",
-            "description": "Ask for something small. The agent reads your files, proposes a change, and you accept or reject each hunk before anything is written.\n[Open the chat](command:forgeguard.chatView.focus)",
-            "media": "media/forgeguard.svg",
+            "description": "Ask for something small. The agent reads your files, proposes a change, and you accept or reject each hunk before anything is written.\n[Open the chat](command:trueguard.chatView.focus)",
+            "media": "media/trueguard.svg",
             "completionEvents": [
-              "onCommand:forgeguard.chatView.focus"
+              "onCommand:trueguard.chatView.focus"
             ]
           }
         ]

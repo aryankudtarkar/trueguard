@@ -13,20 +13,20 @@ import { runInlineEdit } from '../../src/ui/inlineEdit';
 
 describe('inline edit', () => {
   it('refuses to start without a selection', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'forgeguard-inline-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'trueguard-inline-'));
     const file = path.join(dir, 'a.ts');
     await fs.writeFile(file, 'const a = 1;\nconst b = 2;\n', 'utf8');
     const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
     const editor = await vscode.window.showTextDocument(doc);
     editor.selection = new vscode.Selection(0, 0, 0, 0); // empty
-    await vscode.commands.executeCommand('forgeguard.inlineEdit');
+    await vscode.commands.executeCommand('trueguard.inlineEdit');
     // No crash, no turn: the user is told to select code first.
     expect(doc.getText()).toBe('const a = 1;\nconst b = 2;\n');
     await fs.rm(dir, { recursive: true, force: true });
   });
 
   it('sends the selected region and the instruction to the agent', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'forgeguard-inline-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'trueguard-inline-'));
     const file = path.join(dir, 'b.ts');
     await fs.writeFile(file, 'const a = 1;\nconst b = 2;\n', 'utf8');
     const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
@@ -35,7 +35,7 @@ describe('inline edit', () => {
 
     // The command runs without the real input box: the instruction is
     // injected, everything else is the production path.
-    const ext = vscode.extensions.getExtension('forgeguard-dev.forgeguard');
+    const ext = vscode.extensions.getExtension('trueguard-dev.trueguard');
     const api = (await ext?.activate()) as unknown as {
       sessions: Parameters<typeof runInlineEdit>[0]['sessions'];
     };

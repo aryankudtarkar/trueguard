@@ -35,9 +35,9 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 | Task | Status | Commit | Note |
 | --- | --- | --- | --- |
 | 2.1 MCP server (Streamable HTTP, 127.0.0.1, port fallback, bearer auth, Host check) | done | 6fa3602 | started at activation — was never started (audit F1) |
-| 2.2 Path guard (realpath containment, deny list, secret policy) + truncation utility | done | 6fa3602 | `.env`/`*.pem` need `forgeguard.allowSecretReads` |
+| 2.2 Path guard (realpath containment, deny list, secret policy) + truncation utility | done | 6fa3602 | `.env`/`*.pem` need `trueguard.allowSecretReads` |
 | 2.3 read_file, list_files, search_text, get_diagnostics, get_editor_context | done | 6fa3602 | zod schemas, caps, dirty-buffer reads, 2 MB file limit |
-| 2.4 Connector registration with TrueForge (POST/PUT, re-register on port change) | done | cbcc7d1 | proven live: `mcp.initialize` → `forgeguard-editor` |
+| 2.4 Connector registration with TrueForge (POST/PUT, re-register on port change) | done | cbcc7d1 | proven live: `mcp.initialize` → `trueguard-editor` |
 | 2.5 Chat: collapsed tool activity rows with expandable details | done | f3eacc8 | tool calls arrive as deltas → merging buffer, rows keyed by tool_call_id |
 | 2.6 Tests: success, bad input, path escape, symlink escape, cap, dirty buffer | done | 93bf993 | 39 new tests (unit + protocol + real VS Code) |
 | Phase 2 exit gate: agent finds a named function using only the tools | done | 93bf993 | live against real TrueForge, transcript in docs/spikes/ |
@@ -54,7 +54,7 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 | 3.4 ChangeStore state machine | done | cc2733b | illegal transitions throw |
 | 3.5 Proposal builder + VS Code bridge (one WorkspaceEdit, mutex, conflict check) | done | dbd0119 | one undo step per file |
 | 3.6 Verifier (buffer + disk, rollback, truthful result) | done | cc2733b | no path reports success unverified |
-| 3.7 Dev fault hook (corrupt the next write) | done | dbd0119 | command + `forgeguard.dev.enableFaultInjection` |
+| 3.7 Dev fault hook (corrupt the next write) | done | dbd0119 | command + `trueguard.dev.enableFaultInjection` |
 | 3.8 Randomized + real TextDocument tests | done | dbd0119 | CRLF, BOM, unicode, dirty buffer, undo, corruption |
 | Phase 3 audit | **PASS** | — | docs/audits/phase-3.md; 7 findings fixed, edits/ coverage 96 % |
 

@@ -26,7 +26,7 @@ let allowSecrets = false;
 let capBytes = 16_384;
 
 beforeAll(async () => {
-  const base = await mkdtemp(path.join(os.tmpdir(), 'forgeguard-tools-'));
+  const base = await mkdtemp(path.join(os.tmpdir(), 'trueguard-tools-'));
   root = path.join(base, 'ws');
   outside = path.join(base, 'outside');
   await mkdir(path.join(root, 'src'), { recursive: true });

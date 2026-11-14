@@ -75,13 +75,13 @@ export class ChangesTreeProvider implements vscode.TreeDataProvider<ChangeTreeIt
   getTreeItem(element: ChangeTreeItem): vscode.TreeItem {
     if (element.kind === 'group') {
       const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);
-      item.contextValue = 'forgeguard.review';
+      item.contextValue = 'trueguard.review';
       item.iconPath = new vscode.ThemeIcon('eye');
       return item;
     }
     if (element.kind === 'file') {
       const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);
-      item.contextValue = 'forgeguard.file';
+      item.contextValue = 'trueguard.file';
       const stale = this.stale.has(element.path);
       item.iconPath = new vscode.ThemeIcon(stale ? 'warning' : 'file');
       item.description = stale
@@ -94,13 +94,13 @@ export class ChangesTreeProvider implements vscode.TreeDataProvider<ChangeTreeIt
       return item;
     }
     const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
-    item.contextValue = 'forgeguard.hunk';
+    item.contextValue = 'trueguard.hunk';
     item.checkboxState = this.isAccepted(element.changeSetId, element.path, element.hunkId)
       ? vscode.TreeItemCheckboxState.Checked
       : vscode.TreeItemCheckboxState.Unchecked;
     item.description = `+${element.hunk.newLines.length} -${element.hunk.oldLines}`;
     item.command = {
-      command: 'forgeguard.review.openDiff',
+      command: 'trueguard.review.openDiff',
       title: 'Open diff',
       arguments: [element],
     };

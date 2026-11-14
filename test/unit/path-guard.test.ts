@@ -11,7 +11,7 @@ let wsRoot: string;
 let tmpRoot: string;
 
 beforeAll(async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'forgeguard-pg-'));
+  const root = await mkdtemp(path.join(os.tmpdir(), 'trueguard-pg-'));
   tmpRoot = root;
   wsRoot = path.join(root, 'ws');
   ROOTS.push(wsRoot);

@@ -17,7 +17,7 @@ import { ToolCallBuffer, type StreamingEvent } from '../trueforge/schemas';
  * webview are untrusted input: zod-validated, invalid ones dropped.
  */
 export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
-  public static readonly viewId = 'forgeguard.chatView';
+  public static readonly viewId = 'trueguard.chatView';
 
   private view: vscode.WebviewView | undefined;
   private messages: Message[] = [];
@@ -50,7 +50,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       server.onStateChange((state) => {
         this.lastServerState = state;
         this.postState();
-        if (state === ServerState.Failed) { this.addSystemMessage('ForgeGuard can not reach TrueForge. Start it, or check the address in Settings.'); }
+        if (state === ServerState.Failed) { this.addSystemMessage('TrueGuard can not reach TrueForge. Start it, or check the address in Settings.'); }
       }),
       sessions.onTurnEnded(() => this.setWorking(false)),
       // Track active file/selection for the context chip
@@ -115,7 +115,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${this.view!.webview.cspSource}; img-src ${this.view!.webview.cspSource} data:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="${css}">
-  <title>ForgeGuard</title>
+  <title>TrueGuard</title>
 </head>
 <body>
   <div id="root"></div>
@@ -166,7 +166,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         break;
       }
       case 'openReview': {
-        void vscode.commands.executeCommand('forgeguard.reviewNextChange');
+        void vscode.commands.executeCommand('trueguard.reviewNextChange');
         break;
       }
       case 'mentionFiles': {
@@ -197,9 +197,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   private async showSwitchModelQuickPick(): Promise<void> {
-    const models = vscode.workspace.getConfiguration('forgeguard').get<Array<{ id: string; label: string; ref: string }>>('models', []);
+    const models = vscode.workspace.getConfiguration('trueguard').get<Array<{ id: string; label: string; ref: string }>>('models', []);
     if (!models.length) {
-      void vscode.window.showInformationMessage('No models configured. Add one in Settings under ForgeGuard: Models.');
+      void vscode.window.showInformationMessage('No models configured. Add one in Settings under TrueGuard: Models.');
       return;
     }
     const pick = await vscode.window.showQuickPick(
@@ -208,7 +208,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     );
     if (!pick) { return; }
     const idx = models.findIndex((m) => m.id === pick.id);
-    await vscode.workspace.getConfiguration('forgeguard').update('activeModelIndex', idx, vscode.ConfigurationTarget.Global);
+    await vscode.workspace.getConfiguration('trueguard').update('activeModelIndex', idx, vscode.ConfigurationTarget.Global);
     this.addSystemMessage(`Switched to ${pick.label}. New turns use ${pick.description}.`);
   }
 
@@ -249,7 +249,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
           .then((choice) => {
             if (choice === 'Retry') { void this.retryLast(); }
             if (choice === 'Edit Models') {
-              void vscode.commands.executeCommand('workbench.action.openSettings', 'forgeguard.models');
+              void vscode.commands.executeCommand('workbench.action.openSettings', 'trueguard.models');
             }
           });
       }
@@ -302,7 +302,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   private primaryModel(): string {
-    const cfg = vscode.workspace.getConfiguration('forgeguard');
+    const cfg = vscode.workspace.getConfiguration('trueguard');
     const models = cfg.get<Array<{ id: string; label: string; ref: string }>>('models', []);
     const idx = cfg.get<number>('activeModelIndex', 0);
     return models[idx]?.ref ?? models[0]?.ref ?? 'openai/gpt-4o-mini';
@@ -487,7 +487,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
 
   private friendlyError(e: unknown): string {
     const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('not running')) { return 'ForgeGuard can not reach TrueForge. Start it, or check the address in Settings.'; }
+    if (msg.includes('not running')) { return 'TrueGuard can not reach TrueForge. Start it, or check the address in Settings.'; }
     if (msg.includes('already running')) { return 'A turn is already running. Stop it first, or wait for it to finish.'; }
     return `Something went wrong: ${msg}`;
   }
@@ -516,7 +516,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
 
   /** Is at least one model configured? (the "Not configured" state) */
   private hasModels(): boolean {
-    const models = vscode.workspace.getConfiguration('forgeguard').get<Array<{ ref?: string }>>('models', []);
+    const models = vscode.workspace.getConfiguration('trueguard').get<Array<{ ref?: string }>>('models', []);
     return models.some((m) => typeof m?.ref === 'string' && m.ref.length > 0);
   }
 

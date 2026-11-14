@@ -27,7 +27,7 @@ function back. Transcript: `docs/spikes/phase2-exit-gate-transcript.md`.
 | 2.1 Auth: bearer token (TrueForge can send headers — VERIFIED) | Pass | constant-time compare; 401 on missing/wrong token (`mcp-server.test.ts`); header auth proven against real TrueForge (exit-gate transcript) |
 | 2.1 Non-loopback Host rejected | Pass | 403 in `mcp-server.test.ts` and in the real VS Code integration test |
 | 2.2 Path guard: realpath inside workspace, deny list | Pass | `src/mcp/pathGuard.ts`; `path-guard.test.ts` (7 tests): `..` escape, absolute escape, symlink escape, `.git` deny, not_found |
-| 2.2 Secret files need a setting (PRD §8) | Pass | `.env`/`*.pem`/`id_rsa` refused with code `secret`; `forgeguard.allowSecretReads` opt-in |
+| 2.2 Secret files need a setting (PRD §8) | Pass | `.env`/`*.pem`/`id_rsa` refused with code `secret`; `trueguard.allowSecretReads` opt-in |
 | 2.2 Truncation utility: head/tail elision with a marker | Pass | `src/util/truncate.ts` (byte-accurate, never splits a UTF-8 character); `json-cap.test.ts` |
 | 2.3 read_file: numbered lines, 400-line cap, totalLines, contentHash | Pass | `mcp-tools.test.ts` (cap 400, hard cap 2000, ranges, hash format) |
 | 2.3 read_file reads the dirty buffer | Pass | integration test "reads the dirty buffer of an open file" (real VS Code, unsaved edit visible through MCP) |
@@ -35,7 +35,7 @@ function back. Transcript: `docs/spikes/phase2-exit-gate-transcript.md`.
 | 2.3 search_text returns path:line:snippet, capped | Pass | `mcp-tools.test.ts` (matches, maxResults, bad regex, no path leaks) |
 | 2.3 get_diagnostics / get_editor_context | Pass | `mcp-tools.test.ts`, `mcp-server.test.ts` |
 | 2.3 zod schema on every tool | Pass | `src/mcp/tools.ts` (zod shapes); bad input rejected over the protocol (`mcp-server.test.ts`) |
-| 2.4 Connector registration with TrueForge, re-registered on port change | Pass | `TrueForgeClient.upsertMcpServer` (POST/PUT), `src/extension.ts`; live proof in the exit-gate transcript (`mcp.initialize` → `forgeguard-editor`) |
+| 2.4 Connector registration with TrueForge, re-registered on port change | Pass | `TrueForgeClient.upsertMcpServer` (POST/PUT), `src/extension.ts`; live proof in the exit-gate transcript (`mcp.initialize` → `trueguard-editor`) |
 | 2.5 Chat: collapsed tool activity rows with expandable details | Pass | `ToolCallBuffer` + chat rows (`read_file src/app.ts`), webview row with aria-expanded |
 | 2.6 Tests: success, bad input, path escape, symlink escape, cap, dirty buffer | Pass | 20 tool-level tests, 19 MCP protocol tests, 3 integration tests |
 | Exit gate: the agent finds a named function using only the tools | Pass | `test/unit/exit-gate-phase2.test.ts` (live, real TrueForge) + transcript |

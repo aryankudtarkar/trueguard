@@ -115,7 +115,7 @@ export class SessionManager implements vscode.Disposable {
     const mcpServers = this.mcpServers?.() ?? [];
     const session = await this.server.client.createSession({
       model: { name: modelName },
-      instructions: 'You are ForgeGuard, a careful coding agent inside VS Code.',
+      instructions: 'You are TrueGuard, a careful coding agent inside VS Code.',
       ...(mcpServers.length ? { mcp_servers: mcpServers } : {}),
     });
     this.activeSessionId = session.id;
@@ -279,15 +279,15 @@ export class SessionManager implements vscode.Disposable {
     await this.sessionLog.append(sessionId, event.type, event);
   }
 
-  /** The configured model profiles (forgeguard.models). */
+  /** The configured model profiles (trueguard.models). */
   configuredModels(): ModelProfile[] {
-    const models = vscode.workspace.getConfiguration('forgeguard').get<ModelProfile[]>('models', []);
+    const models = vscode.workspace.getConfiguration('trueguard').get<ModelProfile[]>('models', []);
     return models.filter((m) => typeof m?.ref === 'string' && m.ref.length > 0);
   }
 
   /** The failover settings (visible and tunable, unlike a hard-coded retry). */
   private applyFailoverSettings(): void {
-    const cfg = vscode.workspace.getConfiguration('forgeguard.failover');
+    const cfg = vscode.workspace.getConfiguration('trueguard.failover');
     this.failover.setPolicy({
       enabled: cfg.get<boolean>('enabled', true),
       cooldownMs: Math.max(5, cfg.get<number>('breakerCooldownSec', 60)) * 1000,

@@ -104,7 +104,7 @@ async function main() {
   }
   await registerFakeProvider();
   await registerRealProviders();
-  console.log('done. The models are listed in Settings (ForgeGuard: Models).');
+  console.log('done. The models are listed in Settings (TrueGuard: Models).');
 }
 
 main().catch((e) => {

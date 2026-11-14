@@ -3,10 +3,10 @@ import { ServerState, type ServerManager } from '../trueforge/serverManager';
 import { type SessionManager } from '../trueforge/sessionManager';
 
 /**
- * The single ForgeGuard status bar item (left side).
+ * The single TrueGuard status bar item (left side).
  * Offline: $(error) TrueForge offline · Starting: $(loading~spin) ·
  * Working: $(loading~spin) Working · Failover: $(warning) Model ·
- * Pending: $(eye) N to review · Idle: $(shield) ForgeGuard
+ * Pending: $(eye) N to review · Idle: $(shield) TrueGuard
  */
 export class StatusBar implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem;
@@ -46,8 +46,8 @@ export class StatusBar implements vscode.Disposable {
     if (s === ServerState.Failed || s === ServerState.Stopped) {
       this.item.text = '$(error) TrueForge offline';
       this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-      this.item.tooltip = 'ForgeGuard can not reach TrueForge. Click to start it.';
-      this.item.command = 'forgeguard.startTrueForge';
+      this.item.tooltip = 'TrueGuard can not reach TrueForge. Click to start it.';
+      this.item.command = 'trueguard.startTrueForge';
     } else if (s === ServerState.Starting) {
       this.item.text = '$(loading~spin) Starting TrueForge';
       this.item.backgroundColor = undefined;
@@ -56,23 +56,23 @@ export class StatusBar implements vscode.Disposable {
     } else if (this.sessions.isTurnRunning()) {
       this.item.text = '$(loading~spin) Working';
       this.item.backgroundColor = undefined;
-      this.item.tooltip = 'ForgeGuard is streaming a turn. Click to stop it.';
-      this.item.command = 'forgeguard.stopTurn';
+      this.item.tooltip = 'TrueGuard is streaming a turn. Click to stop it.';
+      this.item.command = 'trueguard.stopTurn';
     } else if (this.failoverLabel) {
       this.item.text = `$(warning) ${this.failoverLabel}`;
       this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
       this.item.tooltip = `The primary model failed; turns now use ${this.failoverLabel}. Click to switch models.`;
-      this.item.command = 'forgeguard.switchModel';
+      this.item.command = 'trueguard.switchModel';
     } else if (this.pending > 0) {
       this.item.text = `$(eye) ${this.pending} to review`;
       this.item.backgroundColor = undefined;
-      this.item.tooltip = 'ForgeGuard has changes waiting for your review. Click to review.';
-      this.item.command = 'forgeguard.reviewNextChange';
+      this.item.tooltip = 'TrueGuard has changes waiting for your review. Click to review.';
+      this.item.command = 'trueguard.reviewNextChange';
     } else {
-      this.item.text = '$(shield) ForgeGuard';
+      this.item.text = '$(shield) TrueGuard';
       this.item.backgroundColor = undefined;
-      this.item.tooltip = 'ForgeGuard is ready. Nothing is written without your review.';
-      this.item.command = 'forgeguard.chat.focus';
+      this.item.tooltip = 'TrueGuard is ready. Nothing is written without your review.';
+      this.item.command = 'trueguard.chat.focus';
     }
   }
 

@@ -49,7 +49,7 @@ export function workspaceContextProvider(): ContextProvider {
     },
 
     budgetBytes(): number {
-      return vscode.workspace.getConfiguration('forgeguard').get<number>('contextBudgetBytes', 16_384);
+      return vscode.workspace.getConfiguration('trueguard').get<number>('contextBudgetBytes', 16_384);
     },
   };
 }

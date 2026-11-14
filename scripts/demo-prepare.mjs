@@ -40,11 +40,11 @@ const prompts = [
 ];
 
 writeFileSync(
-  join(target, 'FORGEGUARD-DEMO.md'),
+  join(target, 'TRUEGUARD-DEMO.md'),
   [
-    '# ForgeGuard demo prompts',
+    '# TrueGuard demo prompts',
     '',
-    'Ask ForgeGuard, one at a time:',
+    'Ask TrueGuard, one at a time:',
     '',
     ...prompts.map((p, i) => `${i + 1}. ${p}`),
     '',
@@ -53,4 +53,4 @@ writeFileSync(
 );
 
 console.log(`demo ready in ${target}`);
-console.log('prompts written to FORGEGUARD-DEMO.md');
+console.log('prompts written to TRUEGUARD-DEMO.md');

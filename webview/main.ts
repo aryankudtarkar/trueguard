@@ -3,7 +3,7 @@ import DOMPurify from 'dompurify';
 import type { ContextChip, HostToWebviewMessage, Message } from './protocol';
 
 /**
- * ForgeGuard chat webview. Plain TypeScript + theme CSS variables, no framework.
+ * TrueGuard chat webview. Plain TypeScript + theme CSS variables, no framework.
  * CSP: scripts and remote content are forbidden; markdown is sanitized.
  */
 
@@ -15,7 +15,7 @@ root.innerHTML = `
   <div id="msgList" role="log" aria-live="polite" aria-label="Chat messages"></div>
   <div id="composer">
     <div id="chipRow"></div>
-    <textarea id="input" placeholder="Ask ForgeGuard to change code…" rows="1" aria-label="Message"></textarea>
+    <textarea id="input" placeholder="Ask TrueGuard to change code…" rows="1" aria-label="Message"></textarea>
     <div id="composerRow">
       <button id="modelPill" class="pill" aria-label="Switch model">model</button>
       <span class="spacer"></span>
@@ -248,10 +248,10 @@ function renderComposer(): void {
   input.disabled = offline || noModel;
   sendBtn.disabled = (offline || noModel) && !working;
   input.placeholder = noModel
-    ? 'Add a model in Settings (ForgeGuard: Models) to start'
+    ? 'Add a model in Settings (TrueGuard: Models) to start'
     : offline
       ? 'TrueForge is not running'
-      : 'Ask ForgeGuard to change code…';
+      : 'Ask TrueGuard to change code…';
   modelPill.textContent = pendingReviews > 0 ? `${pendingReviews} to review` : 'model';
 }
 

@@ -12,14 +12,14 @@ import { registerCommandTools, type CommandRunnerDeps } from './commandTool';
 import { vscodeToolDeps } from './vscodeTools';
 
 /**
- * ForgeGuard editor MCP server (FR-3): Streamable HTTP on 127.0.0.1, default
+ * TrueGuard editor MCP server (FR-3): Streamable HTTP on 127.0.0.1, default
  * port 45821 with next-free-port fallback. Auth: bearer token generated at
  * start; non-loopback Host headers are rejected. Stateless: a fresh McpServer
  * + transport per request (SDK 1.32.2 pattern, see DECISIONS).
  */
 
 export const DEFAULT_MCP_PORT = 45821;
-export const MCP_SERVER_NAME = 'forgeguard-editor';
+export const MCP_SERVER_NAME = 'trueguard-editor';
 
 export interface McpEndpoint {
   port: number;
