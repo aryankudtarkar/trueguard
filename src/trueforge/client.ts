@@ -55,7 +55,7 @@ export class TrueForgeClient {
     return sessionDtoSchema.parse(body.data);
   }
 
-  async updateSessionModel(sessionId: string, model: { name: string }): Promise<void> {
+  async updateSessionModel(sessionId: string, model: { name: string; params?: Record<string, unknown> }): Promise<void> {
     // PATCH with an inline agent spec updates the model on inline sessions
     // (verified: docs/TRUEFORGE_NOTES.md, Spike 4). The rest of the spec is
     // preserved server-side for inline sessions; we send only the model change.

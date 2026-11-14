@@ -249,7 +249,13 @@ export class SessionManager implements vscode.Disposable {
         }
         const from = this.failover.profiles.find((p) => p.ref === attemptModel)?.label;
         this.log.warn(`failover: ${this.turnError} → ${decision.model.label}`);
-        await this.server.client.updateSessionModel(sessionId, { name: decision.model.ref });
+        // The reasoning effort travels with the model: the Thinking mode must
+        // keep it when the turn moves to the fallback model.
+        const effort = this.reasoningEffort();
+        await this.server.client.updateSessionModel(sessionId, {
+          name: decision.model.ref,
+          ...(effort ? { params: { reasoning_effort: effort } } : {}),
+        });
         this.failoverEmitter.fire({
           notice: decision.notice ?? `Switched to ${decision.model.label}.`,
           model: decision.model.label,

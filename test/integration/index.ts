@@ -9,6 +9,7 @@ import './review.test';
 import './failover.test';
 import './inline-edit.test';
 import './path-containment.test';
+import './modes.test';
 
 export async function run(): Promise<void> {
   // The extension activates automatically (activationEvents); give it a beat.

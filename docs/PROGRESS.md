@@ -147,6 +147,17 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 **Verdict: PASS** — `docs/audits/whole-codebase.md`; 310 unit + 27 integration
 tests; tag `whole-codebase-audited`.
 
+## Modes and providers (2026-11-14)
+
+| Item | Status | Note |
+| --- | --- | --- |
+| Fast mode (Groq, `gpt-oss-120b`) | done | own failover chain |
+| Thinking mode (NVIDIA NIM, `deepseek-ai/deepseek-v4.1-flash`, `reasoning_effort: medium`) | done | the effort survives a failover |
+| Onboarding collects both keys | done | walkthrough step 2 → SecretStorage, never the settings |
+| Customizable later | done | the same command changes a key; the chains are in Settings |
+| The extension never calls a provider | verified | only TrueForge's settings API receives the key |
+| Audit | **PASS** | `docs/audits/modes.md`; 3 findings fixed, tag `modes-audited` |
+
 ## Status: all planned phases are done and audited
 
 | Phase | Tag |
