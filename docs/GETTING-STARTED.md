@@ -31,6 +31,9 @@ npm install        # once
 npm run dev
 ```
 
+(If you only want to *use* TrueGuard, the extension is already installed in
+your VS Code — skip to Part 2.)
+
 `npm run dev` does the boring parts for you:
 
 ```
@@ -70,12 +73,49 @@ npm run setup
 
 ## Part 2 — Launch the extension
 
-1. In VS Code, open the `trueguard` folder (the one with `package.json`).
-2. Press <kbd>F5</kbd>. A new VS Code window opens with TrueGuard loaded.
-   *(Or: the ▷ button in the Run and Debug panel, with "Run Extension" selected.)*
-3. In that new window, click the **TrueGuard** shield in the Activity Bar —
-   the left-hand strip. The chat opens on the right.
-4. Look at the **status bar, bottom left**:
+### The easy way (already done for you)
+
+TrueGuard is **installed in your normal VS Code** — it is a real extension, not
+a debug session. Just use VS Code as usual:
+
+1. Open your project folder in VS Code (any folder, not necessarily the
+   `trueguard` repository).
+2. Click the **TrueGuard** shield in the Activity Bar — the left-hand strip.
+3. The chat opens on the right.
+
+There is no second window, no debug window and nothing to press. If the icon
+is not there, run *Developer: Reload Window* from the Command Palette.
+
+### The development way (picks up code changes)
+
+To work on TrueGuard itself:
+
+1. Open the `trueguard` folder in VS Code.
+2. Open the **Run and Debug** view: the icon that looks like a play button
+   with a bug, in the Activity Bar (<kbd>Ctrl/Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>).
+3. Make sure the dropdown at the top says **Run Extension**.
+4. Click the small green **▷** button next to that dropdown.
+
+A second VS Code window opens (the Extension Development Host) with TrueGuard
+loaded. Every reload of that window picks up your latest build.
+
+### If you want the F5 key to work
+
+macOS gives the F-keys to the system (on newer Macs, <kbd>🌐</kbd>+<kbd>F5</kbd>
+starts dictation — that is what you hit). Two ways to fix it:
+
+- **Per Mac:** *System Settings → Keyboard → Keyboard Shortcuts → Function
+  Keys* → turn on **"Use F1, F2, etc. keys as standard function keys"**.
+- **In VS Code:** <kbd>Ctrl/Cmd</kbd>+<kbd>K</kbd> then <kbd>Ctrl/Cmd</kbd>+<kbd>S</kbd>
+  → search *Run Extension* → change the keybinding to something free (for
+  example <kbd>Ctrl/Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>).
+
+Either way, the Command Palette always works: <kbd>Ctrl/Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>
+→ type **Debug: Start Debugging** → <kbd>Enter</kbd>.
+
+### What the status bar tells you
+
+Look at the **status bar, bottom left**:
 
 | It says | Meaning |
 | --- | --- |
