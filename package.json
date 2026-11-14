@@ -15,8 +15,11 @@
     "Chat"
   ],
   "activationEvents": [
+    "onWalkthrough:trueguard.gettingStarted",
     "onView:trueguard.chatView",
-    "onCommand:trueguard.startTrueForge"
+    "onCommand:trueguard.startTrueForge",
+    "onCommand:trueguard.checkSetup",
+    "onCommand:trueguard.configureProviders"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -57,6 +60,11 @@
       {
         "command": "trueguard.checkSetup",
         "title": "TrueGuard: Check Setup",
+        "category": "TrueGuard"
+      },
+      {
+        "command": "trueguard.startOnboarding",
+        "title": "TrueGuard: Set Up (providers and models)",
         "category": "TrueGuard"
       },
       {
@@ -447,10 +455,10 @@
           {
             "id": "trueguard.providers",
             "title": "Add your providers",
-            "description": "TrueGuard needs a model provider. Paste your Groq and NVIDIA NIM keys once: they are stored in the extension's secret storage and registered in TrueForge.\n[Configure providers](command:trueguard.configureProviders)",
+            "description": "TrueGuard talks to your model provider. Paste your Groq and NVIDIA NIM keys once: they are stored in the extension's secret storage and registered in TrueForge. No key is ever written to your settings or your repository.\n[Set up the providers](command:trueguard.startOnboarding)",
             "media": "media/trueguard.svg",
             "completionEvents": [
-              "onCommand:trueguard.configureProviders"
+              "onCommand:trueguard.startOnboarding"
             ]
           },
           {

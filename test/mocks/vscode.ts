@@ -3,7 +3,9 @@ export const window = {
   /** The answer the next showWarningMessage call resolves with. */
   warningAnswer: undefined as string | undefined,
   showWarningMessage: async () => window.warningAnswer,
-  showInformationMessage: async () => undefined,
+  /** The answer the next showInformationMessage call resolves with. */
+  informationAnswer: undefined as string | undefined,
+  showInformationMessage: async () => window.informationAnswer,
   showErrorMessage: async () => undefined,
   createOutputChannel: () => ({
     appendLine: () => undefined,

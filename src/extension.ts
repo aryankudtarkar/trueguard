@@ -2,8 +2,9 @@ import * as vscode from 'vscode';
 import { resolveCommandCwd } from './exec/cwd';
 import { SessionLog } from './util/sessionLog';
 import { configureProviders } from './providers/setup';
-import { MODES, PROVIDER_PRESETS, defaultModelsFor } from './providers/presets';
+import { MODES, PROVIDER_PRESETS, defaultModelsFor, modeById } from './providers/presets';
 import { runDoctor, showDoctor } from './ui/doctor';
+import { ONBOARDING_KEY, ONBOARDING_SKIPPED_KEY, runOnboarding } from './ui/onboarding';
 import * as path from 'node:path';
 import { EditorMcpServer, MCP_SERVER_NAME } from './mcp/editorServer';
 import { FaultHook } from './edits/faults';
@@ -256,6 +257,30 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
       await configureProviders({ client: server.client, secrets: context.secrets });
       await applyDefaultModeModels();
       await sessions.refreshModels();
+    }),
+  );
+
+  // The onboarding can be re-run at any time (the walkthrough's step 3).
+  registerDisposable(
+    vscode.commands.registerCommand('trueguard.startOnboarding', async () => {
+      await context.globalState.update(ONBOARDING_KEY, false);
+      await context.globalState.update(ONBOARDING_SKIPPED_KEY, false);
+      await runOnboarding({
+        client: server.client,
+        secrets: context.secrets,
+        availableModels: () => server.client.listAvailableModels(),
+        activeModels: () => sessions.configuredModels(),
+        setModeModels: async (mode, models) => {
+          await vscode.workspace
+            .getConfiguration('trueguard')
+            .update(`modes.${mode}.models`, models, vscode.ConfigurationTarget.Global);
+        },
+        defaultModels: (mode) => {
+          const definition = modeById(mode);
+          return definition ? defaultModelsFor(definition) : [];
+        },
+        modeProvider: (mode) => modeById(mode)?.defaultModel.split('/')[0],
+      }, context.globalState);
     }),
   );
 
