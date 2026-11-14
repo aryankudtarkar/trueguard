@@ -117,17 +117,20 @@
       {
         "command": "trueguard.acceptAll",
         "title": "TrueGuard: Accept All",
-        "category": "TrueGuard"
+        "category": "TrueGuard",
+        "icon": "$(check-all)"
       },
       {
         "command": "trueguard.rejectAll",
         "title": "TrueGuard: Reject All",
-        "category": "TrueGuard"
+        "category": "TrueGuard",
+        "icon": "$(close-all)"
       },
       {
         "command": "trueguard.applyChanges",
         "title": "TrueGuard: Apply Selected Changes",
-        "category": "TrueGuard"
+        "category": "TrueGuard",
+        "icon": "$(play)"
       },
       {
         "command": "trueguard.inlineEdit",
@@ -205,17 +208,17 @@
     "menus": {
       "view/title": [
         {
-          "command": "trueguard.acceptAll",
+          "command": "trueguard.applyChanges",
           "when": "view == trueguard.changesView",
           "group": "navigation@1"
         },
         {
-          "command": "trueguard.rejectAll",
+          "command": "trueguard.acceptAll",
           "when": "view == trueguard.changesView",
           "group": "navigation@2"
         },
         {
-          "command": "trueguard.applyChanges",
+          "command": "trueguard.rejectAll",
           "when": "view == trueguard.changesView",
           "group": "navigation@3"
         }

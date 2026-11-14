@@ -12,12 +12,18 @@ const vscode = acquireVsCodeApi<{ messages?: Message[] }>();
 const root = document.getElementById('root')!;
 
 root.innerHTML = `
-  <div id="msgList" role="log" aria-live="polite" aria-label="Chat messages"></div>
+  <div id="msgList" role="log" aria-live="polite" aria-label="Chat messages">
+    <div id="welcome">
+      <div class="welcomeTitle">TrueGuard</div>
+      <div class="welcomeText">An agent that asks before it writes.</div>
+      <div id="welcomeActions"></div>
+    </div>
+  </div>
   <div id="composer">
     <div id="chipRow"></div>
     <textarea id="input" placeholder="Ask TrueGuard to change code…" rows="1" aria-label="Message"></textarea>
     <div id="composerRow">
-      <button id="modelPill" class="pill" aria-label="Switch model">model</button>
+      <button id="modelPill" class="pill" aria-label="Switch mode or model">Fast</button>
       <span class="spacer"></span>
       <button id="sendBtn" aria-label="Send">Send</button>
     </div>
@@ -25,6 +31,8 @@ root.innerHTML = `
 `;
 
 const msgList = root.querySelector('#msgList') as HTMLDivElement;
+const welcome = root.querySelector('#welcome') as HTMLDivElement;
+const welcomeActions = root.querySelector('#welcomeActions') as HTMLDivElement;
 const chipRow = root.querySelector('#chipRow') as HTMLDivElement;
 const input = root.querySelector('#input') as HTMLTextAreaElement;
 const sendBtn = root.querySelector('#sendBtn') as HTMLButtonElement;
@@ -37,6 +45,7 @@ let serverState = 'stopped';
 let pendingReviews = 0;
 let configured = true;
 let modeLabel = 'Fast';
+let modeTooltip = 'Fast';
 
 function render(): void {
   renderMessages();
@@ -45,6 +54,10 @@ function render(): void {
 }
 
 function renderMessages(): void {
+  // The welcome card is only for an empty chat.
+  welcome.hidden = messages.length > 0;
+  if (messages.length === 0) { renderWelcome(); }
+
   msgList.replaceChildren(
     ...messages.map((m) => {
       if (m.role === 'tool') {
@@ -202,6 +215,44 @@ function statusClass(status: string): string {
   }
 }
 
+/**
+ * The empty state (PRD 6.4): a title, one sentence and three starter chips.
+ * When no model is set up yet, the first chip is the setup itself.
+ */
+function renderWelcome(): void {
+  welcomeActions.replaceChildren();
+  const starters: Array<{ label: string; text: string }> = configured
+    ? [
+        { label: 'Explain this file', text: 'Explain what this file does, in three sentences.' },
+        { label: 'Find a bug', text: 'Look for a bug in the open file and tell me what you find.' },
+        { label: 'Add a test', text: 'Write a test for the open file.' },
+      ]
+    : [
+        { label: 'Set up a model', text: '' },
+        { label: 'Check the setup', text: '' },
+      ];
+  for (const starter of starters) {
+    const chip = document.createElement('button');
+    chip.className = 'starter';
+    chip.textContent = starter.label;
+    chip.setAttribute('aria-label', starter.label);
+    chip.addEventListener('click', () => {
+      if (starter.text) {
+        input.value = starter.text;
+        input.focus();
+        autosize();
+        return;
+      }
+      void vscode.postMessage(
+        starter.label === 'Set up a model'
+          ? { type: 'openWalkthrough' }
+          : { type: 'checkSetup' },
+      );
+    });
+    welcomeActions.appendChild(chip);
+  }
+}
+
 /** Collapsed tool-activity row with expandable details. */
 function renderToolRow(m: Message & { role: 'tool' }): HTMLElement {
   const el = document.createElement('div');
@@ -265,7 +316,8 @@ function renderComposer(): void {
       ? 'TrueForge is not running'
       : 'Ask TrueGuard to change code…';
   modelPill.textContent = pendingReviews > 0 ? `${pendingReviews} to review` : modeLabel;
-  modelPill.setAttribute('aria-label', `Mode: ${modeLabel}. Click to switch mode or model.`);
+  modelPill.title = modeTooltip;
+  modelPill.setAttribute('aria-label', modeTooltip);
 }
 
 function sendMessage(): void {
@@ -386,6 +438,7 @@ window.addEventListener('message', (e: MessageEvent) => {
       pendingReviews = m.pendingReviews;
       configured = m.configured !== false;
       modeLabel = m.mode ?? modeLabel;
+      modeTooltip = m.modeTooltip ?? modeTooltip;
       break;
     }
     case 'messages': {

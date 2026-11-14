@@ -131,14 +131,26 @@ export function formatContext(context: ContextBudget, files: readonly string[] =
   return ['Context from the workspace:', ...parts].join('\n\n');
 }
 
-/** The row the user sees: which files were chosen and how much budget they use. */
+/** A readable size: "820 B", "2.1 KB", "16 KB". */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) { return `${bytes} B`; }
+  if (bytes < 1024 * 1024) {
+    const kb = bytes / 1024;
+    return `${Number.isInteger(kb) ? kb : kb.toFixed(1)} KB`;
+  }
+  const mb = bytes / (1024 * 1024);
+  return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`;
+}
+
+/**
+ * The row the user sees: which files were chosen and how much budget they
+ * use. Nothing at all when there is no context — an empty row is noise.
+ */
 export function describeContext(context: ContextBudget, mentioned: readonly string[] = []): string {
   const names = [
     ...context.files.map((f) => f.path),
     ...mentioned.filter((p) => !context.files.some((f) => f.path === p)),
   ];
-  if (!names.length) { return ''; }
-  const kb = (context.bytes / 1024).toFixed(1);
-  const limitKb = (context.limit / 1024).toFixed(0);
-  return `Context: ${names.join(', ')} (${kb} KB of ${limitKb} KB)`;
+  if (!names.length || context.bytes === 0) { return ''; }
+  return `Context: ${names.join(', ')} — ${formatBytes(context.bytes)} of ${formatBytes(context.limit)}`;
 }

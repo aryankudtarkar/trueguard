@@ -84,8 +84,10 @@ export type HostToWebviewMessage =
       readonly pendingReviews: number;
       /** False when no model is configured yet. */
       readonly configured?: boolean;
-      /** The mode button label: "Fast · gpt-oss-120b". */
+      /** The mode button label: "Fast". */
       readonly mode?: string;
+      /** The mode button tooltip: the mode and the model it uses. */
+      readonly modeTooltip?: string;
     }
   | { readonly type: 'messages'; readonly messages: readonly Message[] }
   | { readonly type: 'streamDelta'; readonly messageId: string; readonly text: string }

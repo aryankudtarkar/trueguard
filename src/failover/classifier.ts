@@ -28,6 +28,8 @@ export interface ClassifiedError {
   retryAfterMs?: number;
   /** Plain-language reason, shown to the user. */
   reason: string;
+  /** Two or three words for the notice: "rate-limited", "unavailable". */
+  short: string;
 }
 
 /** The longest we ever wait for a Retry-After header (FR-7). */
@@ -40,32 +42,34 @@ interface Rule {
   test: RegExp;
   class: ErrorClass;
   reason: string;
+  /** Two or three words, for the notice. */
+  short: string;
 }
 
 /** Message patterns, checked in order. */
 const MESSAGE_RULES: Rule[] = [
-  { test: /\b(429|too many requests|rate[ -]?limit)\b/i, class: 'transient', reason: 'the provider is rate-limiting' },
-  { test: /\b(quota|insufficient_quota|billing|out of credit)\b/i, class: 'provider_fatal', reason: 'the provider quota is exhausted' },
-  { test: /\b(401|403|unauthorized|forbidden|invalid api key|authentication)\b/i, class: 'provider_fatal', reason: 'the provider refused the credentials' },
-  { test: /\b(400|bad request)\b/i, class: 'request_fatal', reason: 'the request was rejected' },
-  { test: /context length|maximum context|too many tokens|prompt is too long/i, class: 'request_fatal', reason: 'the request does not fit the model context' },
-  { test: /\b(500|502|503|504)\b|internal server error|bad gateway|service unavailable|gateway timeout/i, class: 'transient', reason: 'the provider had a server error' },
-  { test: /timeout|timed out|etimedout|deadline exceeded/i, class: 'transient', reason: 'the provider did not answer in time' },
-  { test: /connection reset|econnreset|epipe|socket hang up|stream (stall|closed|ended)/i, class: 'transient', reason: 'the connection to the provider broke' },
-  { test: /cannot connect|connection refused|econnrefused|network error|dns/i, class: 'transient', reason: 'the provider could not be reached' },
+  { test: /\b(429|too many requests|rate[ -]?limit)\b/i, class: 'transient', reason: 'the provider is rate-limiting', short: 'rate-limited' },
+  { test: /\b(quota|insufficient_quota|billing|out of credit)\b/i, class: 'provider_fatal', reason: 'the provider quota is exhausted', short: 'out of quota' },
+  { test: /\b(401|403|unauthorized|forbidden|invalid api key|authentication)\b/i, class: 'provider_fatal', reason: 'the provider refused the credentials', short: 'not usable' },
+  { test: /\b(400|bad request)\b/i, class: 'request_fatal', reason: 'the request was rejected', short: 'not usable' },
+  { test: /context length|maximum context|too many tokens|prompt is too long/i, class: 'request_fatal', reason: 'the request does not fit the model context', short: 'too big for the model' },
+  { test: /\b(500|502|503|504)\b|internal server error|bad gateway|service unavailable|gateway timeout/i, class: 'transient', reason: 'the provider had a server error', short: 'unavailable' },
+  { test: /timeout|timed out|etimedout|deadline exceeded/i, class: 'transient', reason: 'the provider did not answer in time', short: 'unresponsive' },
+  { test: /connection reset|econnreset|epipe|socket hang up|stream (stall|closed|ended)/i, class: 'transient', reason: 'the connection to the provider broke', short: 'unreachable' },
+  { test: /cannot connect|connection refused|econnrefused|network error|dns/i, class: 'transient', reason: 'the provider could not be reached', short: 'unreachable' },
 ];
 
 /** HTTP statuses, checked before the message rules. */
-const STATUS_RULES: Array<{ status: number; class: ErrorClass; reason: string }> = [
-  { status: 429, class: 'transient', reason: 'the provider is rate-limiting' },
-  { status: 500, class: 'transient', reason: 'the provider had a server error' },
-  { status: 502, class: 'transient', reason: 'the provider had a server error' },
-  { status: 503, class: 'transient', reason: 'the provider had a server error' },
-  { status: 504, class: 'transient', reason: 'the provider did not answer in time' },
-  { status: 401, class: 'provider_fatal', reason: 'the provider refused the credentials' },
-  { status: 403, class: 'provider_fatal', reason: 'the provider refused the request' },
-  { status: 402, class: 'provider_fatal', reason: 'the provider quota is exhausted' },
-  { status: 400, class: 'request_fatal', reason: 'the request was rejected' },
+const STATUS_RULES: Array<{ status: number; class: ErrorClass; reason: string; short: string }> = [
+  { status: 429, class: 'transient', reason: 'the provider is rate-limiting', short: 'rate-limited' },
+  { status: 500, class: 'transient', reason: 'the provider had a server error', short: 'unavailable' },
+  { status: 502, class: 'transient', reason: 'the provider had a server error', short: 'unavailable' },
+  { status: 503, class: 'transient', reason: 'the provider had a server error', short: 'unavailable' },
+  { status: 504, class: 'transient', reason: 'the provider did not answer in time', short: 'unresponsive' },
+  { status: 401, class: 'provider_fatal', reason: 'the provider refused the credentials', short: 'not usable' },
+  { status: 403, class: 'provider_fatal', reason: 'the provider refused the request', short: 'not usable' },
+  { status: 402, class: 'provider_fatal', reason: 'the provider quota is exhausted', short: 'out of quota' },
+  { status: 400, class: 'request_fatal', reason: 'the request was rejected', short: 'not usable' },
 ];
 
 /** Parse a `Retry-After` value (seconds or an HTTP date) into milliseconds. */
@@ -103,6 +107,7 @@ export function classifyError(input: ErrorInput): ClassifiedError {
         class: rule.class,
         status: input.status,
         reason: rule.reason,
+        short: rule.short,
         ...(rule.class === 'transient'
           ? { retryAfterMs: Math.min(parseRetryAfter(input.retryAfter, now) ?? 0, RETRY_AFTER_CAP_MS) }
           : {}),
@@ -116,6 +121,7 @@ export function classifyError(input: ErrorInput): ClassifiedError {
         class: rule.class,
         ...(input.status !== undefined ? { status: input.status } : {}),
         reason: rule.reason,
+        short: rule.short,
         ...(rule.class === 'transient'
           ? { retryAfterMs: Math.min(parseRetryAfter(input.retryAfter, now) ?? 0, RETRY_AFTER_CAP_MS) }
           : {}),
@@ -128,6 +134,7 @@ export function classifyError(input: ErrorInput): ClassifiedError {
     class: 'unknown',
     ...(input.status !== undefined ? { status: input.status } : {}),
     reason: message ? 'the provider failed in an unexpected way' : 'the provider failed',
+    short: 'unavailable',
     retryAfterMs: 0,
   };
 }

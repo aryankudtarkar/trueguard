@@ -189,6 +189,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         this.post({ type: 'chip', chip: this.chip });
         break;
       }
+      case 'openWalkthrough': {
+        void vscode.commands.executeCommand('workbench.action.openWalkthrough', 'trueguard.gettingStarted');
+        break;
+      }
+      case 'checkSetup': {
+        void vscode.commands.executeCommand('trueguard.checkSetup');
+        break;
+      }
       case 'revertChange': {
         await this.reviews?.revertChangeSet(m.changeSetId);
         break;
@@ -396,12 +404,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     return this.sessions.activeModel();
   }
 
-  /** The label of the mode button: "Fast · GPT-OSS 120B". */
+  /** The label of the mode button: just the mode. The model is the tooltip —
+   * the pill lives in a narrow sidebar and must not wrap. */
   private modeLabel(): string {
+    return modeById(this.sessions.mode())?.label ?? 'Fast';
+  }
+
+  /** The tooltip of the mode button: the mode and the model it uses. */
+  private modeTooltip(): string {
     const mode = modeById(this.sessions.mode());
     const model = this.sessions.activeModel();
-    const short = model.includes('/') ? model.slice(model.indexOf('/') + 1) : model;
-    return `${mode?.label ?? 'Fast'} · ${short}`;
+    return `${mode?.label ?? 'Fast'} — ${model}. Click to switch mode or model.`;
   }
 
   private onStreamEvent(agentId: string, event: StreamingEvent): void {
@@ -627,6 +640,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       pendingReviews: this.pendingReviews,
       configured: this.hasModels(),
       mode: this.modeLabel(),
+      modeTooltip: this.modeTooltip(),
     });
   }
 

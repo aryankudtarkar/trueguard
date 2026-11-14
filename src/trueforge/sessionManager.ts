@@ -324,15 +324,25 @@ export class SessionManager implements vscode.Disposable {
     return this.discoveredModels();
   }
 
-  /** The models TrueForge knows about, the active mode's provider first. */
+  /**
+   * The models TrueForge knows about.
+   *
+   * The order is the order TrueForge lists them in — the user's order, not an
+   * alphabetical guess. The active mode's provider comes first when it is
+   * registered.
+   */
   private discoveredModels(): ModelProfile[] {
     const preferred = modeById(this.mode())?.defaultModel.split('/')[0];
-    const ordered = [...this.discovered].sort((a, b) => {
-      if (a.provider === preferred) { return -1; }
-      if (b.provider === preferred) { return 1; }
-      return a.label.localeCompare(b.label);
-    });
-    return ordered.map((m) => ({ id: `${m.provider}/${m.model}`, label: m.label, ref: `${m.provider}/${m.model}` }));
+    const models = this.discovered.map((m) => ({
+      id: `${m.provider}/${m.model}`,
+      label: m.label,
+      ref: `${m.provider}/${m.model}`,
+    }));
+    if (!preferred) { return models; }
+    const first = models.findIndex((m) => m.ref.startsWith(`${preferred}/`));
+    if (first <= 0) { return models; }
+    // The preferred provider's models first, the rest in their original order.
+    return [...models.slice(first), ...models.slice(0, first)];
   }
 
   /** Ask TrueForge which models exist (so nothing has to be configured). */

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_CONTEXT_BUDGET_BYTES,
   describeContext,
+  formatBytes,
   formatContext,
   keywords,
   retrieveContext,
@@ -87,7 +88,16 @@ describe('context retrieval', () => {
     const summary = describeContext(context, ['docs/readme.md']);
     expect(summary).toContain('src/auth/login.ts');
     expect(summary).toContain('docs/readme.md');
-    expect(summary).toContain('KB of');
+    expect(summary).toContain('of 16 KB');
+    // No context, no row: an empty line is noise.
+    expect(describeContext(retrieveContext('zzzz qqqq', CANDIDATES))).toBe('');
+  });
+
+  it('formats sizes readably', () => {
+    expect(formatBytes(0)).toBe('0 B');
+    expect(formatBytes(820)).toBe('820 B');
+    expect(formatBytes(2200)).toBe('2.1 KB');
+    expect(formatBytes(16_384)).toBe('16 KB');
   });
 
   it('says nothing when there is no context', () => {

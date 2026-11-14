@@ -37,6 +37,8 @@ export const webviewToHostMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('denyCommand'), toolCallId: z.string().min(1) }),
   z.object({ type: z.literal('revertChange'), changeSetId: z.string().min(1).max(64) }),
   z.object({ type: z.literal('mentionFiles'), query: z.string().max(200) }),
+  z.object({ type: z.literal('openWalkthrough') }),
+  z.object({ type: z.literal('checkSetup') }),
   z.object({
     type: z.literal('mention'),
     path: z.string().min(1).max(400),

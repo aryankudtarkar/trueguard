@@ -236,6 +236,15 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
   }
   void checkProviderSetup();
 
+  // First run: open the walkthrough, so nobody is dropped into a chat with no
+  // idea what to do. It opens once per machine.
+  void (async () => {
+    const onboarded = context.globalState.get<boolean>('trueguard.onboarded');
+    if (onboarded) { return; }
+    await context.globalState.update('trueguard.onboarded', true);
+    await vscode.commands.executeCommand('workbench.action.openWalkthrough', 'trueguard.gettingStarted');
+  })();
+
   // Discover the models TrueForge knows about: a fresh install must work
   // without the user typing a single model name.
   void sessions.refreshModels();

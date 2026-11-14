@@ -166,7 +166,7 @@ export class FailoverManager {
 
     this.activeIndex = next.index;
     const notice = current
-      ? `Switched to ${next.model.label} because ${current.label} is ${reasonFor(classified)}.`
+      ? `Switched to ${next.model.label} because ${current.label} is ${classified.short}.`
       : `Switched to ${next.model.label}.`;
     return { action: 'retry', model: next.model, delayMs, classified, notice };
   }
@@ -194,12 +194,3 @@ export class FailoverManager {
   }
 }
 
-/** "rate-limited" / "unavailable" — a short reason for the notice. */
-function reasonFor(classified: ClassifiedError): string {
-  switch (classified.class) {
-    case 'transient':
-      return classified.reason;
-    default:
-      return 'not available';
-  }
-}
