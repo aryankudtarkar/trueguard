@@ -49,6 +49,10 @@ const server = createServer(async (req, res) => {
       req.on('end', () => resolve(b));
     });
     const body = JSON.parse(rawBody || '{}');
+    if (process.env.FAKE_LLM_DEBUG) {
+      console.log('TOOLS:', (body.tools ?? []).map((t) => t.function?.name).join(',') || '(none)');
+      console.log('MSG:', JSON.stringify(body.messages ?? []).slice(0, 400));
+    }
     const hasToolResult = Array.isArray(body.messages) && body.messages.some((m) => m.role === 'tool');
     // A model whose name asks for a fault fails that way, so a failover can
     // be demonstrated with two models on one provider.

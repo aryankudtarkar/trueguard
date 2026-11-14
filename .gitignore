@@ -9,3 +9,6 @@ coverage/
 .DS_Store
 *.log
 .vscode-test/
+
+# the benchmark clone from demo-prepare
+demo/

@@ -1,7 +1,9 @@
-#!/usr/bin/env node
 /**
- * Prepare the demo: clone the benchmark repository (a small, real project),
- * pin a commit and write the demo prompts.
+ * Prepare the demo: clone the benchmark repository the brief pins,
+ * check out the exact commit and write the three demo prompts.
+ *
+ * The brief (docs/BRIEF_NOTES.md): "Repository: pallets/flask, tag 3.1.3
+ * (commit 22d92470)".
  *
  * Usage: node scripts/demo-prepare.mjs [targetDir]
  */
@@ -10,9 +12,10 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-/** The benchmark: a small, readable project with tests. */
+/** The benchmark: the repository and the commit the brief pins. */
 const REPO = 'https://github.com/pallets/flask.git';
-const COMMIT = '3e1c4d1a1a2d5b5e0b0e2a4c1f4b6d8e9a0b1c2d'; // pinned for the demo
+const COMMIT = '22d92470'; // tag 3.1.3
+const TAG = '3.1.3';
 
 const target = process.argv[2] ?? join(process.cwd(), 'demo', 'flask');
 
@@ -23,34 +26,66 @@ function run(cmd, args, cwd) {
 if (!existsSync(target)) {
   mkdirSync(target, { recursive: true });
   console.log(`cloning ${REPO} into ${target}…`);
-  run('git', ['clone', '--depth', '50', REPO, target]);
-  try {
-    run('git', ['checkout', COMMIT], target);
-    console.log(`pinned to ${COMMIT}`);
-  } catch {
-    console.log('the pinned commit is not in the shallow clone: using the tip');
-  }
+  run('git', ['clone', REPO, target]);
+}
+try {
+  run('git', ['checkout', COMMIT], target);
+  console.log(`checked out ${COMMIT} (tag ${TAG})`);
+} catch {
+  console.log(`could not check out ${COMMIT}: is the tag ${TAG} present?`);
 }
 
 const prompts = [
-  'Add a docstring to the calculate_total function and handle an empty list.',
-  'Add type hints to the functions in app/calculate.py.',
-  'Write a test for the empty-list case.',
-  'Run the tests and tell me what fails.',
+  {
+    id: 'A',
+    title: 'Inline edit (single file)',
+    prompt:
+      'Treat the values "off" and "n" as false as well, case-insensitively, and update the ' +
+      'docstring to list every value that is treated as false.',
+    file: 'src/flask/helpers.py',
+    symbol: 'get_debug_flag',
+    verify: 'FLASK_DEBUG=off python -c "from flask.helpers import get_debug_flag; print(get_debug_flag())"',
+  },
+  {
+    id: 'B',
+    title: 'Agent mode (3 or more files, none named)',
+    prompt:
+      "Add a new built-in CLI command `flask config` that prints the loaded application's " +
+      'configuration as JSON, masking the values of any key containing SECRET, PASSWORD, TOKEN ' +
+      'or KEY as "***". It must appear in `flask --help`, be covered by a test, and be ' +
+      'documented alongside the other built-in commands.',
+    verify: 'pytest tests/test_cli.py -q',
+  },
+  {
+    id: 'C',
+    title: 'Resilience',
+    prompt: 'Repeat Task A with the provider unreachable or the key invalid.',
+    verify: 'git status --porcelain  # must be empty',
+  },
 ];
 
 writeFileSync(
   join(target, 'TRUEGUARD-DEMO.md'),
   [
-    '# TrueGuard demo prompts',
+    '# TrueGuard demo — the three fixed tasks (brief, Round 1)',
     '',
-    'Ask TrueGuard, one at a time:',
+    `Benchmark: pallets/flask at ${COMMIT} (tag ${TAG})`,
     '',
-    ...prompts.map((p, i) => `${i + 1}. ${p}`),
+    ...prompts.flatMap((p) => [
+      `## Task ${p.id} — ${p.title}`,
+      '',
+      `**Ask:** ${p.prompt}`,
+      ...(p.file ? [`**File:** ${p.file}${p.symbol ? ` (\`${p.symbol}\`)` : ''}`] : []),
+      `**Verify:** \`${p.verify}\``,
+      '',
+    ]),
+    '## TrueForge session (Task B)',
+    '',
+    'The TrueForge web UI is at http://localhost:8790 — show the session while Task B runs.',
     '',
   ].join('\n'),
   'utf8',
 );
 
 console.log(`demo ready in ${target}`);
-console.log('prompts written to TRUEGUARD-DEMO.md');
+console.log('the three tasks are written to TRUEGUARD-DEMO.md');

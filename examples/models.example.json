@@ -1,0 +1,32 @@
+{
+  "$comment": [
+    "An example model configuration (BYOM). Copy it into your settings",
+    "(Settings -> TrueGuard: Models) and fill in the model identifiers that",
+    "your provider registered in TrueForge.",
+    "",
+    "Never commit API keys: the keys live in TrueForge's own settings, not here.",
+    "Index 0 is the primary; the next entries are the fallbacks used when a",
+    "provider fails (rate limit, server error, timeout)."
+  ],
+  "forgeguard.models": [
+    {
+      "id": "primary",
+      "label": "GPT-4o mini",
+      "ref": "openai/gpt-4o-mini"
+    },
+    {
+      "id": "fallback",
+      "label": "Claude Haiku",
+      "ref": "anthropic/claude-3-5-haiku-latest"
+    }
+  ],
+  "forgeguard.activeModelIndex": 0,
+  "forgeguard.trueforge.baseUrl": "http://localhost:8790",
+  "forgeguard.toolOutputCapBytes": 16384,
+  "forgeguard.contextBudgetBytes": 16384,
+  "forgeguard.commandTimeoutSec": 120,
+  "forgeguard.failover.enabled": true,
+  "forgeguard.failover.breakerCooldownSec": 60,
+  "forgeguard.allowSecretReads": false,
+  "forgeguard.dev.enableFaultInjection": false
+}

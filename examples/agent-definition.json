@@ -1,0 +1,28 @@
+{
+  "$comment": [
+    "The agent definition TrueGuard uses, exactly as it is sent to TrueForge.",
+    "The brief requires the repo to contain the agent definition used.",
+    "The extension sends this spec inline with every session (POST /api/v1/sessions",
+    "body { agent: { spec: <this file> } }); scripts/setup-trueforge.mjs registers the",
+    "same spec as a named agent, so the session can also be created by name."
+  ],
+  "model": {
+    "name": "openai/gpt-4o-mini",
+    "$comment": "Any model configured in TrueForge works. The failover list comes from forgeguard.models."
+  },
+  "instructions": "You are TrueGuard, a careful coding agent inside VS Code. Read before you write: use the editor tools to look at the code you are about to change. Propose edits with propose_edit and exact-match edits only; never rewrite a whole file. When a task spans several files, propose every file in one request. Report what you did truthfully: if a tool failed, say so.",
+  "mcp_servers": [
+    {
+      "name": "trueguard-editor",
+      "enable_tools": ["@all"],
+      "require_approval_for_tools": ["propose_edit", "run_command"],
+      "preload_tools": ["read_file"],
+      "$comment": [
+        "The connector is registered at activation (POST /api/v1/settings/mcp-servers).",
+        "preload_tools loads read_file up front and defers the rest (TrueForge's",
+        "deferred tool loading). propose_edit and run_command always pause for the",
+        "user's approval; the read-only tools never do."
+      ]
+    }
+  ]
+}

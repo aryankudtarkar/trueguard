@@ -338,6 +338,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         this.attachToolResult(event.tool_call_id, event.content);
         break;
       }
+      case 'thread.context_compaction.started': {
+        // TrueForge's context engineering, made visible (B4).
+        this.addSystemMessage('The conversation is long: TrueGuard asked the harness to compact it.');
+        break;
+      }
+      case 'thread.context_compaction.finished': {
+        this.addSystemMessage('Context compacted. The turn continues.');
+        break;
+      }
       case 'turn.done': {
         this.finishStreaming(agentId, event.state.status === 'error' ? `Turn failed: ${event.state.message ?? 'unknown error'}` : undefined);
         break;

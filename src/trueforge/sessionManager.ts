@@ -115,7 +115,20 @@ export class SessionManager implements vscode.Disposable {
     const mcpServers = this.mcpServers?.() ?? [];
     const session = await this.server.client.createSession({
       model: { name: modelName },
-      instructions: 'You are TrueGuard, a careful coding agent inside VS Code.',
+      instructions:
+        'You are TrueGuard, a careful coding agent inside VS Code. Read before you write: ' +
+        'use the editor tools to look at the code you are about to change. Propose edits with ' +
+        'propose_edit and exact-match edits only; never rewrite a whole file. When a task spans ' +
+        'several files, propose every file in one request. Report what you did truthfully.',
+      // TrueForge's context engineering (B4): the harness compacts the thread
+      // when it grows, and offloads oversized tool responses to a file. Both
+      // are visible in the session (compaction events are shown in the chat).
+      config: {
+        context_management: {
+          compaction: { enabled: true },
+          large_tool_response: { enabled: true },
+        },
+      },
       ...(mcpServers.length ? { mcp_servers: mcpServers } : {}),
     });
     this.activeSessionId = session.id;

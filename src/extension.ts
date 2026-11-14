@@ -41,8 +41,13 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
       {
         name: MCP_SERVER_NAME,
         enable_tools: ['@all'],
-        // The read-only tools never pause the turn; propose_edit always does.
+        // The read-only tools never pause the turn; propose_edit and
+        // run_command always do.
         require_approval_for_tools: ['propose_edit', 'run_command'],
+        // All six tools are loaded up front: the agent must be able to call
+        // propose_edit directly. TrueForge's deferred tool loading (which
+        // hands the model list_tools/call_tool instead) is documented in
+        // docs/DECISIONS.md as deliberately not used on the demo's path.
         preload: true,
       },
     ];
