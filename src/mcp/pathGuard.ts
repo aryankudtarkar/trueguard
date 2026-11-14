@@ -44,11 +44,16 @@ export function isSecretFile(name: string): boolean {
   return (
     base === '.env' ||
     base.startsWith('.env.') ||
+    // production.env, secrets.env, … are secrets too.
+    base.endsWith('.env') ||
     base.endsWith('.pem') ||
+    base.endsWith('.key') ||
     base === 'id_rsa' ||
     base === 'id_dsa' ||
     base === 'id_ecdsa' ||
-    base === 'id_ed25519'
+    base === 'id_ed25519' ||
+    base === 'credentials' ||
+    base === '.netrc'
   );
 }
 

@@ -19,6 +19,9 @@ import { ToolCallBuffer, type StreamingEvent } from '../trueforge/schemas';
  */
 export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewId = 'trueguard.chatView';
+  /** The chat keeps a bounded history: the webview receives the whole list on
+   * every update, so an unbounded one would get slower with every message. */
+  private static readonly MAX_MESSAGES = 200;
 
   private view: vscode.WebviewView | undefined;
   private messages: Message[] = [];
@@ -102,7 +105,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         logger().debug(`dropped invalid webview message: ${parsed.error.message.slice(0, 200)}`);
         return;
       }
-      void this.onMessage(parsed.data);
+      // A handler that throws must not become an unhandled rejection.
+      void this.onMessage(parsed.data).catch((e) => {
+        logger().warn(`webview message failed: ${redact(String(e))}`);
+      });
     });
   }
 
@@ -234,9 +240,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     if (contextBlock.text) { parts.push(contextBlock.text); }
     const full = parts.join('\n\n');
 
-    this.messages.push({ id: `u${Date.now()}`, role: 'user', text });
+    this.pushMessage({ id: `u${Date.now()}`, role: 'user', text });
     const agentId = `a${Date.now()}`;
-    this.messages.push({ id: agentId, role: 'agent', text: '', streaming: true });
+    this.pushMessage({ id: agentId, role: 'agent', text: '', streaming: true });
     this.streamingMessageId = agentId;
     this.streamBuffer = '';
     this.toolCalls.drain();
@@ -426,7 +432,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       }));
       return;
     }
-    this.messages.push({
+    this.pushMessage({
       id,
       role: 'command',
       text: command.command,
@@ -455,7 +461,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     if (!existing) {
       for (const file of changeSet.files) {
         const id = `c${Date.now()}-${this.messages.length}`;
-        this.messages.push({
+        this.pushMessage({
           id,
           role: 'change',
           text: file.path,
@@ -494,7 +500,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
    * even when several calls run in parallel.
    */
   private addToolRow(toolCallId: string | undefined, name: string, args: string | undefined): void {    const id = `t${Date.now()}-${this.messages.length}`;
-    this.messages.push({
+    this.pushMessage({
       id,
       role: 'tool',
       text: toolLabel(name, args),
@@ -544,8 +550,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.post({ type: 'messages', messages: this.messages });
   }
 
+  /** Append a message and keep the history bounded. */
+  private pushMessage(message: Message): void {
+    this.messages.push(message);
+    const overflow = this.messages.length - ChatViewProvider.MAX_MESSAGES;
+    if (overflow > 0) { this.messages.splice(0, overflow); }
+  }
+
   private addSystemMessage(text: string): void {
-    this.messages.push({ id: `s${Date.now()}`, role: 'system', text });
+    this.pushMessage({ id: `s${Date.now()}`, role: 'system', text });
     this.post({ type: 'messages', messages: this.messages });
   }
 

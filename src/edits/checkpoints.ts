@@ -42,6 +42,8 @@ export function checkpointId(changeSetId: string, createdAt: number): string {
 }
 
 export class CheckpointStore {
+  /** How many checkpoints are kept. Each one stores the full file text. */
+  static readonly MAX_CHECKPOINTS = 50;
   private readonly checkpoints = new Map<string, Checkpoint>();
   /** Insertion order, so two checkpoints in the same millisecond still sort. */
   private sequence = 0;
@@ -62,6 +64,7 @@ export class CheckpointStore {
     this.checkpoints.set(checkpoint.id, checkpoint);
     this.order.set(checkpoint.id, this.sequence++);
     void this.persist(checkpoint);
+    void this.prune();
     return checkpoint;
   }
 
@@ -84,6 +87,19 @@ export class CheckpointStore {
   /** The checkpoint of a change set. */
   forChangeSet(changeSetId: string): Checkpoint | undefined {
     return this.list().find((c) => c.changeSetId === changeSetId);
+  }
+
+  /** Drop the oldest checkpoints: the store must not fill the disk. */
+  private async prune(): Promise<void> {
+    const excess = this.checkpoints.size - CheckpointStore.MAX_CHECKPOINTS;
+    if (excess <= 0) { return; }
+    const oldest = this.list().slice(-excess);
+    for (const checkpoint of oldest) {
+      this.checkpoints.delete(checkpoint.id);
+      this.order.delete(checkpoint.id);
+      if (!this.directory) { continue; }
+      await fs.rm(path.join(this.directory, `${checkpoint.id}.json`), { force: true }).catch(() => undefined);
+    }
   }
 
   /** Write the checkpoint to the extension's storage. */

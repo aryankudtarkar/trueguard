@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, mkdir, writeFile, symlink, rm, realpath } from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { PathGuard, isInside } from '../../src/mcp/pathGuard';
+import { PathGuard, isInside, isSecretFile } from '../../src/mcp/pathGuard';
 
 const ROOTS: string[] = [];
 let outsideDir: string;
@@ -64,6 +64,16 @@ describe('path guard', () => {
   it('reports not_found for missing files inside the workspace', async () => {
     await expect(guard().resolve('missing.ts', { mustExist: true }))
       .rejects.toMatchObject({ code: 'not_found' });
+  });
+
+  it('recognizes the secret file names', () => {
+    expect(isSecretFile('.env')).toBe(true);
+    expect(isSecretFile('.env.local')).toBe(true);
+    expect(isSecretFile('production.env')).toBe(true);
+    expect(isSecretFile('server.pem')).toBe(true);
+    expect(isSecretFile('id_rsa')).toBe(true);
+    expect(isSecretFile('app.ts')).toBe(false);
+    expect(isSecretFile('environment.ts')).toBe(false);
   });
 
   it('isInside: exact root and nested pass; parent traversal fails', () => {

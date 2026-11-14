@@ -48,6 +48,8 @@ export interface SessionLogEntry {
 }
 
 export class SessionLog {
+  /** How many session logs are kept on disk. */
+  static readonly MAX_SESSIONS = 20;
   private readonly written = new Map<string, number>();
 
   constructor(private readonly directory: string) {}
@@ -91,8 +93,30 @@ export class SessionLog {
       };
       await fs.appendFile(file, `${JSON.stringify(entry)}\n`, 'utf8');
       this.written.set(sessionId, (this.written.get(sessionId) ?? 0) + 1);
+      void this.prune();
     } catch {
       // A log that cannot be written must never break the agent.
+    }
+  }
+
+  /** Drop the oldest session logs: the log must not fill the disk. */
+  private async prune(): Promise<void> {
+    try {
+      const files = (await fs.readdir(this.directory)).filter((f) => f.endsWith('.jsonl'));
+      if (files.length <= SessionLog.MAX_SESSIONS) { return; }
+      const stats = await Promise.all(
+        files.map(async (f) => {
+          const full = path.join(this.directory, f);
+          const stat = await fs.stat(full).catch(() => undefined);
+          return { full, at: stat?.mtimeMs ?? 0 };
+        }),
+      );
+      stats.sort((a, b) => a.at - b.at);
+      for (const old of stats.slice(0, stats.length - SessionLog.MAX_SESSIONS)) {
+        await fs.rm(old.full, { force: true }).catch(() => undefined);
+      }
+    } catch {
+      // Pruning is best effort.
     }
   }
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
-import * as os from 'node:os';
 import * as path from 'node:path';
+import { cleanup, workspaceTempDir } from './tempdir';
 import type { StreamingEvent } from '../../src/trueforge/schemas';
 
 /**
@@ -83,7 +83,7 @@ describe('phase 4 exit gate: approval gate and review', () => {
     const api = await getApi();
     if (!api) { return; }
 
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'trueguard-p4-'));
+    const dir = await workspaceTempDir('trueguard-p4');
     const file = path.join(dir, 'app.ts');
     const original = 'export const a = 1;\nexport const b = 2;\nexport const c = 3;\n';
     await fs.writeFile(file, original, 'utf8');
@@ -140,7 +140,7 @@ describe('phase 4 exit gate: approval gate and review', () => {
       expect(state?.note).toContain('Verified against disk');
     } finally {
       await setFakeMode({ mode: 'echo' });
-      await fs.rm(dir, { recursive: true, force: true });
+      await cleanup(dir);
     }
   });
 

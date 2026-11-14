@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { contentHash } from '../util/hash';
+import { PathGuard } from '../mcp/pathGuard';
 import type { EditorBridge } from './apply';
 
 /**
@@ -21,17 +22,34 @@ async function readCurrentText(path: string): Promise<string> {
   return fs.readFile(path, 'utf8');
 }
 
+
+/**
+ * Resolve a path for the editor.
+ *
+ * EVERY path that reaches the disk goes through here: the agent's proposal
+ * paths are relative ("src/app.ts") or absolute, and they must resolve inside
+ * a workspace folder. The guard refuses .git, secret files and anything
+ * outside the workspace (PRD FR-4 / section 8).
+ */
+async function resolveWorkspacePath(path: string, mustExist: boolean): Promise<string> {
+  const roots = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath);
+  const allowSecrets = vscode.workspace.getConfiguration('trueguard').get<boolean>('allowSecretReads', false);
+  const guard = new PathGuard({ roots, allowSecrets });
+  const resolved = await guard.resolve(path, { mustExist });
+  return resolved.absolute;
+}
+
 export function vscodeBridge(): EditorBridge {
   /** VS Code manages the file encoding (and the BOM) itself: we write text. */
   const stripBom = (text: string): string => (text.startsWith('﻿') ? text.slice(1) : text);
 
   return {
     async readText(path: string): Promise<string> {
-      return readCurrentText(path);
+      return readCurrentText(await resolveWorkspacePath(path, true));
     },
 
     async writeText(path: string, text: string): Promise<void> {
-      const uri = vscode.Uri.file(path);
+      const uri = vscode.Uri.file(await resolveWorkspacePath(path, false));
       const doc = await vscode.workspace.openTextDocument(uri);
       const edit = new vscode.WorkspaceEdit();
       // Replace the whole document in one edit: VS Code makes it one undo step.
@@ -44,11 +62,11 @@ export function vscodeBridge(): EditorBridge {
     },
 
     async snapshot(path: string): Promise<string> {
-      return readCurrentText(path);
+      return readCurrentText(await resolveWorkspacePath(path, true));
     },
 
     async restore(path: string, text: string): Promise<void> {
-      const uri = vscode.Uri.file(path);
+      const uri = vscode.Uri.file(await resolveWorkspacePath(path, false));
       const doc = await vscode.workspace.openTextDocument(uri);
       const edit = new vscode.WorkspaceEdit();
       const lastLine = Math.max(0, doc.lineCount - 1);
@@ -60,11 +78,11 @@ export function vscodeBridge(): EditorBridge {
     },
 
     async readDisk(path: string): Promise<string> {
-      return fs.readFile(path, 'utf8');
+      return fs.readFile(await resolveWorkspacePath(path, true), 'utf8');
     },
 
     async hash(path: string): Promise<string> {
-      return contentHash(await readCurrentText(path));
+      return contentHash(await readCurrentText(await resolveWorkspacePath(path, true)));
     },
   };
 }
@@ -76,18 +94,22 @@ export function vscodeProposalContext(): {
 } {
   return {
     async readFile(path: string): Promise<string | undefined> {
-      const open = documentFor(path);
+      const absolute = await resolveWorkspacePath(path, true).catch(() => undefined);
+      if (!absolute) { return undefined; }
+      const open = documentFor(absolute);
       if (open) { return open.getText(); }
       try {
-        return await fs.readFile(path, 'utf8');
+        return await fs.readFile(absolute, 'utf8');
       } catch {
         return undefined;
       }
     },
     async exists(path: string): Promise<boolean> {
-      if (documentFor(path)) { return true; }
+      const absolute = await resolveWorkspacePath(path, false).catch(() => undefined);
+      if (!absolute) { return false; }
+      if (documentFor(absolute)) { return true; }
       try {
-        await fs.access(path);
+        await fs.access(absolute);
         return true;
       } catch {
         return false;

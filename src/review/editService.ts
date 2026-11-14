@@ -292,13 +292,24 @@ export class EditService implements vscode.Disposable {
       before.set(file.path, await this.bridge.readText(file.path));
     }
 
-    const result = await applyChanges(
-      { files: requests },
-      {
-        bridge: this.bridge,
-        lock: (path, fn) => this.locks.run(path, fn),
-      },
-    );
+    let result: ApplyResult;
+    try {
+      result = await applyChanges(
+        { files: requests },
+        {
+          bridge: this.bridge,
+          lock: (path, fn) => this.locks.run(path, fn),
+        },
+      );
+    } catch (e) {
+      // The editor failed in an unexpected way: the change set must not stay
+      // stuck in "applying", and the agent must be told.
+      this.changes.transition(changeSet.id, 'verificationFailed');
+      const note = `The change could not be applied: ${e instanceof Error ? e.message : String(e)}. Nothing was written.`;
+      this.changes.setNote(changeSet.id, note);
+      this.updateEmitter.fire({ kind: 'failed', changeSetId: changeSet.id, summary: note });
+      return { status: 'verification_failed', files: [], note };
+    }
 
     if (result.status === 'applied' || result.status === 'partially_applied') {
       // Only the files that actually changed get a checkpoint.
@@ -471,9 +482,13 @@ export class EditService implements vscode.Disposable {
 
     const reverted: string[] = [];
     for (const file of checkpoint.files) {
-      await this.bridge.writeText(file.path, file.before);
-      const after = await this.bridge.readText(file.path);
-      if (hashOf(after) !== hashOf(file.before)) {
+      // The same per-file lock as an apply: a revert never races an apply.
+      const outcome = await this.locks.run(file.path, async () => {
+        await this.bridge.writeText(file.path, file.before);
+        const after = await this.bridge.readText(file.path);
+        return hashOf(after) === hashOf(file.before);
+      });
+      if (!outcome) {
         return {
           reverted: false,
           note: `The revert of ${file.path} could not be verified. The file may differ from the snapshot.`,

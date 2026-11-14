@@ -131,6 +131,22 @@ Owner gate G0: **approved 2026-11-12** — Phase 1 started.
 | 10.7 `docs/SUBMISSION.md` | done | c7d6e97 | the pitch, the screenshots, the brief mapping |
 | Phases 9–10 audit | **PASS** | — | docs/audits/phase-9-10.md; 8 findings fixed |
 
+## Whole-codebase audit (2026-11-14, before the demo freeze)
+
+| Finding | Severity | Status |
+| --- | --- | --- |
+| The edit pipeline had no path containment: the agent's proposal path was read and written as-is, outside the workspace, and relative paths resolved against an unpredictable cwd | **S1** | fixed — every disk path goes through the workspace guard |
+| An editor error during the apply left the review stuck in `applying` and told the agent nothing | **S1** | fixed |
+| `production.env` and friends were not refused as secrets | S2 | fixed |
+| The revert did not take the per-file lock and could race an apply | S2 | fixed |
+| A throwing webview handler became an unhandled rejection | S2 | fixed |
+| The chat history, the session log and the checkpoints grew without bound | S2 | fixed (200 / 20 / 50) |
+| The design-lint failed on GitHub issue references in comments | S2 | fixed |
+| The integration tests wrote outside the workspace — they relied on the hole above | S3 | fixed |
+
+**Verdict: PASS** — `docs/audits/whole-codebase.md`; 310 unit + 27 integration
+tests; tag `whole-codebase-audited`.
+
 ## Status: all planned phases are done and audited
 
 | Phase | Tag |

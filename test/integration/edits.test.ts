@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
-import * as os from 'node:os';
 import * as path from 'node:path';
+import { cleanup, workspaceTempDir } from './tempdir';
 import { applyChanges } from '../../src/edits/apply';
 import { computeHunks } from '../../src/edits/hunks';
 import { contentHash } from '../../src/util/hash';
@@ -17,7 +17,7 @@ import { CheckpointStore, hashOf } from '../../src/edits/checkpoints';
  */
 
 async function tempDir(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), 'trueguard-edits-'));
+  return workspaceTempDir('trueguard-edits');
 }
 
 async function writeFile(dir: string, name: string, content: string): Promise<string> {
@@ -48,7 +48,7 @@ describe('edit engine in real VS Code', () => {
     expect(result.status).toBe('applied');
     expect(result.files[0]?.verified).toBe(true);
     expect(await fs.readFile(file, 'utf8')).toBe('one\nTWO\nthree\n');
-    await fs.rm(dir, { recursive: true, force: true });
+    await cleanup(dir);
   });
 
   it('keeps CRLF and BOM conventions', async () => {
@@ -62,7 +62,7 @@ describe('edit engine in real VS Code', () => {
     expect(result.status).toBe('applied');
     const written = await fs.readFile(file, 'utf8');
     expect(written).toBe(`${BOM}one\r\nTWO\r\nthree\r\n`);
-    await fs.rm(dir, { recursive: true, force: true });
+    await cleanup(dir);
   });
 
   it('keeps unicode content intact', async () => {
@@ -74,7 +74,7 @@ describe('edit engine in real VS Code', () => {
     );
     expect(result.status).toBe('applied');
     expect(await fs.readFile(file, 'utf8')).toContain('🚀 héllo wörld');
-    await fs.rm(dir, { recursive: true, force: true });
+    await cleanup(dir);
   });
 
   it('applies on top of a dirty buffer and keeps the unsaved edit', async () => {
@@ -95,7 +95,7 @@ describe('edit engine in real VS Code', () => {
     expect(result.status).toBe('applied');
     expect(doc.getText()).toContain('// unsaved');
     expect(doc.getText()).toContain('TWO');
-    await fs.rm(dir, { recursive: true, force: true });
+    await cleanup(dir);
   });
 
   it('undoes the whole change with one undo step', async () => {
@@ -113,7 +113,7 @@ describe('edit engine in real VS Code', () => {
 
     await vscode.commands.executeCommand('undo');
     expect(doc.getText()).toBe(original);
-    await fs.rm(dir, { recursive: true, force: true });
+    await cleanup(dir);
   });
 
   it('catches a corrupted write and rolls it back', async () => {
@@ -127,7 +127,7 @@ describe('edit engine in real VS Code', () => {
     expect(result.status).toBe('verification_failed');
     expect(result.files[0]?.verified).toBe(false);
     expect(await fs.readFile(file, 'utf8')).toBe(original);
-    await fs.rm(dir, { recursive: true, force: true });
+    await cleanup(dir);
   });
 
   it('refuses to apply when the file changed after the proposal', async () => {
@@ -139,10 +139,10 @@ describe('edit engine in real VS Code', () => {
     const result = await applyChanges({ files: [request] }, { bridge: vscodeBridge() });
     expect(result.status).toBe('conflict');
     expect(await fs.readFile(file, 'utf8')).toBe('one\nuser edit\n');
-    await fs.rm(dir, { recursive: true, force: true });
+    await cleanup(dir);
   });
   it('reverts an applied change back to the text before it', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'forgeguard-revert-'));
+    const dir = await workspaceTempDir();
     const file = path.join(dir, 'r.ts');
     const original = 'one\ntwo\n';
     await fs.writeFile(file, original, 'utf8');
@@ -167,6 +167,6 @@ describe('edit engine in real VS Code', () => {
     // Revert it.
     await bridge.writeText(checkpoint.files[0]!.path, checkpoint.files[0]!.before);
     expect(await fs.readFile(file, 'utf8')).toBe(original);
-    await fs.rm(dir, { recursive: true, force: true });
+    await cleanup(dir);
   });
 });
