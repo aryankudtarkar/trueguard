@@ -210,10 +210,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   private async showSwitchModelQuickPick(): Promise<void> {
-    const models = this.sessions.configuredModels();
-    if (!models.length) {
+    const configured = this.sessions.configuredModels();
+    if (!configured.length) {
       void vscode.window.showInformationMessage(
-        'No models configured. Add your providers with "TrueGuard: Configure Providers".',
+        'No models found. Start TrueForge and run "TrueGuard: Configure Providers".',
       );
       return;
     }
@@ -225,22 +225,18 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
         detail: mode.defaultModel,
         itemKind: 'mode' as const,
         id: mode.id,
+        ref: mode.defaultModel,
       })),
-      ...models.map((m) => ({
+      ...configured.map((m) => ({
         label: m.label,
         description: m.ref,
-        detail: `Model in the ${active} chain`,
+        detail: `Model of the ${active} chain`,
         itemKind: 'model' as const,
         id: m.id,
+        ref: m.ref,
       })),
     ];
-    const pick = await vscode.window.showQuickPick(items as Array<{
-      label: string;
-      description: string;
-      detail: string;
-      itemKind: 'mode' | 'model';
-      id: string;
-    }>, {
+    const pick = await vscode.window.showQuickPick(items, {
       placeHolder: 'Choose a mode or a model for the next turns',
     });
     if (!pick) { return; }
@@ -250,10 +246,18 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       this.addSystemMessage(`Switched to ${pick.label} mode. New turns use ${pick.detail}.`);
       return;
     }
-    const idx = models.findIndex((m) => m.id === pick.id);
+    // Switching a model rewrites the ACTIVE MODE's chain: the mode keeps its
+    // own failover chain, so the choice has to land there.
+    const chain = [...configured];
+    const idx = chain.findIndex((m) => m.ref === pick.ref);
     if (idx < 0) { return; }
-    await vscode.workspace.getConfiguration('trueguard').update('activeModelIndex', idx, vscode.ConfigurationTarget.Global);
-    this.addSystemMessage(`Switched to ${pick.label}. New turns use ${pick.description}.`);
+    chain.splice(idx, 1);
+    chain.unshift({ id: pick.id, label: pick.label, ref: pick.ref });
+    await vscode.workspace
+      .getConfiguration('trueguard')
+      .update(`modes.${active}.models`, chain, vscode.ConfigurationTarget.Global);
+    this.postState();
+    this.addSystemMessage(`Switched to ${pick.label}. New turns use ${pick.ref}.`);
   }
 
   private async sendUserTurn(text: string, chips: readonly ContextChip[]): Promise<void> {

@@ -197,19 +197,8 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
   registerDisposable(
     vscode.commands.registerCommand('trueguard.switchModel', async () => {
       // QuickPick lives in the chat provider; focus the view and let the user click the pill,
-      // or expose the same QuickPick here.
-      const models = vscode.workspace.getConfiguration('trueguard').get<Array<{ id: string; label: string; ref: string }>>('models', []);
-      if (!models.length) {
-        void vscode.window.showInformationMessage('No models configured. Add one in Settings under TrueGuard: Models.');
-        return;
-      }
-      const pick = await vscode.window.showQuickPick(
-        models.map((m) => ({ label: m.label, description: m.ref, id: m.id })),
-        { placeHolder: 'Switch the model for new turns' },
-      );
-      if (!pick) { return; }
-      const idx = models.findIndex((m) => m.id === pick.id);
-      await vscode.workspace.getConfiguration('trueguard').update('activeModelIndex', idx, vscode.ConfigurationTarget.Global);
+      // The same picker the chat pill opens.
+      await vscode.commands.executeCommand('trueguard.chat.focus');
     }),
   );
   registerDisposable(
@@ -246,12 +235,17 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
   }
   void checkProviderSetup();
 
+  // Discover the models TrueForge knows about: a fresh install must work
+  // without the user typing a single model name.
+  void sessions.refreshModels();
+
   // The onboarding step: the provider keys go into SecretStorage and the
   // providers are registered in TrueForge (the extension never calls them).
   registerDisposable(
     vscode.commands.registerCommand('trueguard.configureProviders', async () => {
       await configureProviders({ client: server.client, secrets: context.secrets });
       await applyDefaultModeModels();
+      await sessions.refreshModels();
     }),
   );
 
@@ -596,12 +590,9 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
     vscode.commands.registerCommand('trueguard.inlineEdit', async () => {
       await runInlineEdit({
         sessions,
-        model: () => {
-          const cfg = vscode.workspace.getConfiguration('trueguard');
-          const models = cfg.get<Array<{ id: string; label: string; ref: string }>>('models', []);
-          const idx = cfg.get<number>('activeModelIndex', 0);
-          return models[idx]?.ref ?? models[0]?.ref ?? 'openai/gpt-4o-mini';
-        },
+        // The model of the active mode, so an inline edit uses the same
+        // model as the chat.
+        model: () => sessions.activeModel(),
         onRequest: (selection) => {
           inlineRequest = { path: selection.path };
         },

@@ -19,6 +19,10 @@ see. The agent loop runs on TrueForge; the trust runs here.
 
 ## Quick start
 
+**First time? Read [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)** — it
+walks through the whole first run, including what you should see and what to
+do when nothing happens.
+
 Requires Node 22+, VS Code 1.93+ and a TrueForge server.
 
 ```bash
@@ -100,7 +104,6 @@ starts an inline edit.
 | --- | --- | --- |
 | `trueguard.trueforge.baseUrl` | `http://localhost:8790` | The TrueForge server |
 | `trueguard.models` | `[]` | Ordered model profiles (index 0 is primary) |
-| `trueguard.activeModelIndex` | `0` | The model for new turns |
 | `trueguard.toolOutputCapBytes` | `16384` | The cap on one tool result |
 | `trueguard.contextBudgetBytes` | `16384` | The cap on the context per message |
 | `trueguard.commandTimeoutSec` | `120` | The timeout for agent-run commands |

@@ -1,6 +1,6 @@
 # Phase 2 exit gate — real TrueForge + TrueGuard editor MCP server
 
-- date: 2026-11-14T06:22:22.260Z
+- date: 2026-11-14T06:50:20.254Z
 - connector: trueguard-editor at http://127.0.0.1:45930/mcp (bearer auth)
 - model: fake-provider/test-model (spikes/fake-openai.mjs)
 - prompt: Where is the probe function defined?
@@ -8,16 +8,16 @@
 ## Events
 
 ```json
-{"type":"turn.created","id":"01m7cbh9g7dckhh7cd215mqa4x","turn_id":"01m7cbh9g5ejmb3q0sjyhjnmhy","previous_turn_id":null,"thread_id":null}
-{"type":"mcp.initialize","id":"01m7cbh9h5xera45mc6zdgtgd4","thread_id":"main"}
-{"type":"model.message","id":"01m7cbh9h5xera45mc6zdgtgd5","thread_id":"main","created_at":"2026-11-14T06:22:22.245Z","model":{"name":"fake-provider/test-model","params":{"max_tokens":4096}}}
-{"type":"model.message.delta","id":"01m7cbh9h5xera45mc6zdgtgd5","thread_id":"main","created_at":"2026-11-14T06:22:22.248Z","content":"I will call the tool now."}
-{"type":"model.message.delta","id":"01m7cbh9h5xera45mc6zdgtgd5","thread_id":"main","tool_calls":[{"index":0,"id":"call_fake_1","type":"function","function":{"name":"read_file","arguments":""},"tool_info":{"type":"mcp","name":"read_file","server_id":"trueguard-editor","server_name":"trueguard-editor"}}]}
-{"type":"model.message.delta","id":"01m7cbh9h5xera45mc6zdgtgd5","thread_id":"main","tool_calls":[{"index":0,"function":{"arguments":"{\"path\":\"src/app.ts\"}"}}]}
-{"type":"model.message.delta","id":"01m7cbh9h5xera45mc6zdgtgd5","thread_id":"main","finish_reason":"tool_calls"}
-{"type":"tool.response","id":"01m7cbh9hf16tdthm33vcvq2bf","thread_id":"main","created_at":"2026-11-14T06:22:22.255Z","tool_call_id":"call_fake_1","content":"{\n \"path\": \"src/app.ts\",\n \"startLine\": 1,\n \"endLine\": 3,\n \"totalLines\": 3,\n \"contentHash\": \"fc7c31effc48e9354c1fbec74b1eb8cafb080bc8ac6748856b9b0b530b398c93\",\n \"truncated\": false,\n \"lines\": \"1| export function forgeGuardPhaseTwoProbe() {\\n2|   return 42;\\n3| }\"\n}"}
-{"type":"model.message","id":"01m7cbh9hgth1sr4stkpv92bdh","thread_id":"main","created_at":"2026-11-14T06:22:22.256Z","model":{"name":"fake-provider/test-model","params":{"max_tokens":4096}}}
-{"type":"model.message.delta","id":"01m7cbh9hgth1sr4stkpv92bdh","thread_id":"main","created_at":"2026-11-14T06:22:22.258Z","content":"The tool returned: {\n \"path\": \"src/app.ts\",\n \"startLine\": 1,\n \"endLine\": 3,\n \"totalLines\": 3,\n \"contentHash\": \"fc7c31effc48e9354c1fbec74b1eb8cafb080bc8ac6748856b9b0b530b398c93\",\n \"truncated\": false,\n \"lines\": \"1| export function forgeGuardPhaseTwoProbe() {\\n2|   return 42;\\n3| }\"\n}"}
-{"type":"model.message.delta","id":"01m7cbh9hgth1sr4stkpv92bdh","thread_id":"main","finish_reason":"stop"}
-{"type":"turn.done","id":"01m7cbh9hkp2e1qarm39cgsnh4","thread_id":null,"state":{"status":"done","output":{"content":"The tool returned: {\n \"path\": \"src/app.ts\",\n \"startLine\": 1,\n \"endLine\": 3,\n \"totalLines\": 3,\n \"contentHash\": \"fc7c31effc48e9354c1fbec74b1eb8cafb080bc8ac6748856b9b0b530b398c93\",\n \"truncated\": false,\n \"lines\": \"1| export function forgeGuardPhaseTwoProbe() {\\n2|   return 42;\\n3| }\"\n}","type":"model.message","id":"01m7cbh9hgth1sr4stkpv92bdh","created_at":"2026-11-14T06:22:22.258Z","thread_id":"main","finish_reason":"stop","usage":{"input_tokens":0,"output_tokens":0,"input_tokens_breakdown":{"harness":1857,"skills":0,"instructions":14,"tool_definitions":553,"messages":0}},"model":{"name":"fake-provider/test-model","params":{"max_tokens":4096}}},"required_actions":[],"metrics":{"total_input_tokens":0,"total_output_tokens":0,"total_tokens":0}}}
+{"type":"turn.created","id":"01m7cd4g5jv2q15ga12fvcrh7x","turn_id":"01m7cd4g5gq43ashgbe8b74szp","previous_turn_id":null,"thread_id":null}
+{"type":"mcp.initialize","id":"01m7cd4g6fcdhy40t39ytc8j65","thread_id":"main"}
+{"type":"model.message","id":"01m7cd4g6gp0zdfdkzgaba2t3f","thread_id":"main","created_at":"2026-11-14T06:50:20.240Z","model":{"name":"fake-provider/test-model","params":{"max_tokens":4096}}}
+{"type":"model.message.delta","id":"01m7cd4g6gp0zdfdkzgaba2t3f","thread_id":"main","created_at":"2026-11-14T06:50:20.242Z","content":"I will call the tool now."}
+{"type":"model.message.delta","id":"01m7cd4g6gp0zdfdkzgaba2t3f","thread_id":"main","tool_calls":[{"index":0,"id":"call_fake_1","type":"function","function":{"name":"read_file","arguments":""},"tool_info":{"type":"mcp","name":"read_file","server_id":"trueguard-editor","server_name":"trueguard-editor"}}]}
+{"type":"model.message.delta","id":"01m7cd4g6gp0zdfdkzgaba2t3f","thread_id":"main","tool_calls":[{"index":0,"function":{"arguments":"{\"path\":\"src/app.ts\"}"}}]}
+{"type":"model.message.delta","id":"01m7cd4g6gp0zdfdkzgaba2t3f","thread_id":"main","finish_reason":"tool_calls"}
+{"type":"tool.response","id":"01m7cd4g6sgatj60qafpeg179k","thread_id":"main","created_at":"2026-11-14T06:50:20.249Z","tool_call_id":"call_fake_1","content":"{\n \"path\": \"src/app.ts\",\n \"startLine\": 1,\n \"endLine\": 3,\n \"totalLines\": 3,\n \"contentHash\": \"fc7c31effc48e9354c1fbec74b1eb8cafb080bc8ac6748856b9b0b530b398c93\",\n \"truncated\": false,\n \"lines\": \"1| export function forgeGuardPhaseTwoProbe() {\\n2|   return 42;\\n3| }\"\n}"}
+{"type":"model.message","id":"01m7cd4g6tpparbb0vq47rztc4","thread_id":"main","created_at":"2026-11-14T06:50:20.250Z","model":{"name":"fake-provider/test-model","params":{"max_tokens":4096}}}
+{"type":"model.message.delta","id":"01m7cd4g6tpparbb0vq47rztc4","thread_id":"main","created_at":"2026-11-14T06:50:20.252Z","content":"The tool returned: {\n \"path\": \"src/app.ts\",\n \"startLine\": 1,\n \"endLine\": 3,\n \"totalLines\": 3,\n \"contentHash\": \"fc7c31effc48e9354c1fbec74b1eb8cafb080bc8ac6748856b9b0b530b398c93\",\n \"truncated\": false,\n \"lines\": \"1| export function forgeGuardPhaseTwoProbe() {\\n2|   return 42;\\n3| }\"\n}"}
+{"type":"model.message.delta","id":"01m7cd4g6tpparbb0vq47rztc4","thread_id":"main","finish_reason":"stop"}
+{"type":"turn.done","id":"01m7cd4g6x1yarm5hn20wrs2ta","thread_id":null,"state":{"status":"done","output":{"content":"The tool returned: {\n \"path\": \"src/app.ts\",\n \"startLine\": 1,\n \"endLine\": 3,\n \"totalLines\": 3,\n \"contentHash\": \"fc7c31effc48e9354c1fbec74b1eb8cafb080bc8ac6748856b9b0b530b398c93\",\n \"truncated\": false,\n \"lines\": \"1| export function forgeGuardPhaseTwoProbe() {\\n2|   return 42;\\n3| }\"\n}","type":"model.message","id":"01m7cd4g6tpparbb0vq47rztc4","created_at":"2026-11-14T06:50:20.252Z","thread_id":"main","finish_reason":"stop","usage":{"input_tokens":0,"output_tokens":0,"input_tokens_breakdown":{"harness":1857,"skills":0,"instructions":14,"tool_definitions":553,"messages":0}},"model":{"name":"fake-provider/test-model","params":{"max_tokens":4096}}},"required_actions":[],"metrics":{"total_input_tokens":0,"total_output_tokens":0,"total_tokens":0}}}
 ```

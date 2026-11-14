@@ -31,6 +31,8 @@ export function expect(actual: unknown): {
   toMatch(re: RegExp | string): void;
   toBeUndefined(): void;
   toBeDefined(): void;
+  toBeGreaterThan(expected: number): void;
+  toBeTruthy(): void;
   not: {
     toBe(expected: unknown): void;
     toContain(expected: unknown): void;
@@ -67,6 +69,14 @@ export function expect(actual: unknown): {
     },
     toBeDefined(): void {
       if (actual === undefined) { throw new Error('expected defined'); }
+    },
+    toBeGreaterThan(expected: number): void {
+      if (!(typeof actual === 'number' && actual > expected)) {
+        throw new Error(`expected ${String(actual)} to be greater than ${String(expected)}`);
+      }
+    },
+    toBeTruthy(): void {
+      if (!actual) { throw new Error(`expected ${String(actual)} to be truthy`); }
     },
   };
   return {

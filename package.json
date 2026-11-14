@@ -301,11 +301,6 @@
           "default": [],
           "description": "Ordered model profiles. Index 0 is the primary model; failures fall over to the next."
         },
-        "trueguard.activeModelIndex": {
-          "type": "integer",
-          "default": 0,
-          "description": "Index into trueguard.models used for new turns."
-        },
         "trueguard.toolOutputCapBytes": {
           "type": "integer",
           "default": 16384,

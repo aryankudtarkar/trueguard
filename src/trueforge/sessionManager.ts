@@ -86,6 +86,8 @@ export class SessionManager implements vscode.Disposable {
   private turnError: string | undefined;
   /** The tools that already returned a result in this turn. */
   private readonly completedTools = new Set<string>();
+  /** The models TrueForge knows about (discovered, so nothing must be typed). */
+  private discovered: Array<{ provider: string; model: string; label: string }> = [];
 
   constructor(
     private readonly server: ServerManager,
@@ -304,8 +306,11 @@ export class SessionManager implements vscode.Disposable {
   /**
    * The models of the ACTIVE mode, in failover order.
    *
-   * Each mode has its own chain (Fast, Thinking); when a mode's list is
-   * empty the generic `trueguard.models` list is used.
+   * The order of preference:
+   *   1. the mode's own chain (Settings → TrueGuard → Modes),
+   *   2. the generic `trueguard.models` list,
+   *   3. the models TrueForge knows about — so a fresh install works without
+   *      the user typing a single model name.
    */
   configuredModels(): ModelProfile[] {
     const cfg = vscode.workspace.getConfiguration('trueguard');
@@ -314,7 +319,26 @@ export class SessionManager implements vscode.Disposable {
     const models = scoped.filter((m) => typeof m?.ref === 'string' && m.ref.length > 0);
     if (models.length) { return models; }
     const generic = cfg.get<ModelProfile[]>('models', []);
-    return generic.filter((m) => typeof m?.ref === 'string' && m.ref.length > 0);
+    const configured = generic.filter((m) => typeof m?.ref === 'string' && m.ref.length > 0);
+    if (configured.length) { return configured; }
+    return this.discoveredModels();
+  }
+
+  /** The models TrueForge knows about, the active mode's provider first. */
+  private discoveredModels(): ModelProfile[] {
+    const preferred = modeById(this.mode())?.defaultModel.split('/')[0];
+    const ordered = [...this.discovered].sort((a, b) => {
+      if (a.provider === preferred) { return -1; }
+      if (b.provider === preferred) { return 1; }
+      return a.label.localeCompare(b.label);
+    });
+    return ordered.map((m) => ({ id: `${m.provider}/${m.model}`, label: m.label, ref: `${m.provider}/${m.model}` }));
+  }
+
+  /** Ask TrueForge which models exist (so nothing has to be configured). */
+  async refreshModels(): Promise<void> {
+    const models = await this.server.client.listAvailableModels().catch(() => [] as Array<{ provider: string; model: string; label: string }>);
+    this.discovered = models;
   }
 
   /** The active mode. */

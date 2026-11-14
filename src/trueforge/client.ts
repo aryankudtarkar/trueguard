@@ -106,6 +106,45 @@ export class TrueForgeClient {
       .parse(parsed.data);
   }
 
+  /**
+   * The models TrueForge knows about, as `provider/model` names.
+   *
+   * This is how the extension finds its models without the user typing FQNs
+   * into the settings: TrueForge is the source of truth for what exists.
+   */
+  async listAvailableModels(): Promise<Array<{ provider: string; model: string; label: string }>> {
+    const res = await fetch(this.url('/settings/model-providers'), { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) { throw new TrueForgeError(res.status, await safeErrorBody(res)); }
+    const parsed = apiEnvelopeSchema.parse(await res.json());
+    return z
+      .array(
+        z
+          .object({
+            name: z.string().min(1),
+            manifest: z
+              .object({
+                models: z
+                  .array(z.object({ model_id: z.string().min(1), name: z.string().min(1) }).passthrough())
+                  .optional(),
+              })
+              .passthrough()
+              .optional(),
+          })
+          .passthrough(),
+      )
+      .catch([])
+      .transform((providers) =>
+        providers.flatMap((provider) =>
+          (provider.manifest?.models ?? []).map((model) => ({
+            provider: provider.name,
+            model: model.model_id,
+            label: model.name,
+          })),
+        ),
+      )
+      .parse(parsed.data);
+  }
+
   /** List registered MCP server names (cheap idempotency check for the connector). */
   async listMcpServers(): Promise<string[]> {
     const res = await fetch(this.url('/settings/mcp-servers'), { signal: AbortSignal.timeout(5000) });
