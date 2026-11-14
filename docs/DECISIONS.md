@@ -126,6 +126,39 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
   decision of 2026-11-14). The extension id is therefore
   `aryankudtarkar.trueguard`.
 
+## 2026-11-14 — Two modes, two providers, keys in SecretStorage
+
+- **Context:** the product needs a fast model for everyday work and a
+  thinking model for hard problems. The owner chose **Groq**
+  (`gpt-oss-120b`) for Fast and **NVIDIA NIM**
+  (`deepseek-ai/deepseek-v4.1-flash`) for Thinking.
+- **Decision:**
+  - The extension **registers the providers in TrueForge** and refers to the
+    models by their TrueForge name (`groq/gpt-oss-120b`). TrueGuard never
+    calls a provider itself: the brief's eligibility rule says the agent loop
+    must run inside TrueForge.
+  - Both providers are OpenAI-compatible, so they are registered as
+    `custom` providers with a `base_url` (verified live against the running
+    server: the manifest is accepted and the key comes back redacted).
+  - The **keys go into VS Code's SecretStorage**, not into the settings and
+    not into the repository. A setting is plaintext in `settings.json`; an API
+    key does not belong there. The keys are collected once, during the
+    onboarding (the walkthrough's second step, *Add your providers*), and can
+    be changed later with the same command.
+  - Each mode has **its own failover chain**
+    (`trueguard.modes.fast.models`, `trueguard.modes.thinking.models`). The
+    generic `trueguard.models` list is the fallback when a mode has none, so
+    an existing configuration keeps working.
+  - The chains are filled **only for providers that are actually registered**
+    in TrueForge — a package.json default would otherwise silently override
+    the user's own model list.
+  - The Thinking mode sends `reasoning_effort: medium` with the model
+    (the parameter the verified TrueForge API exposes).
+- **Consequence:** a fresh install asks for two keys and works; the chat's
+  mode pill shows which mode (and model) is in use, and the extension warns
+  when the active mode needs a provider that is not set up yet, instead of
+  letting every turn fail.
+
 ## 2026-11-12 — A failover continues the task; it never restarts it
 - **Context:** cline/cline#713 reports that Cline's retry *"doesn't continue
   the task, but it starts again. So it generates an infinite loop and money

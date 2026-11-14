@@ -57,6 +57,39 @@ and verifies every write.
 | 6 | The context row `Context: app/calculate.py (2.1 KB of 16 KB)` | D5 |
 | 7 | The command card with the exact command and the Allow button | D5 |
 
+## Model setup
+
+| Mode | Provider | Model | Where it runs | Cost |
+| --- | --- | --- | --- | --- |
+| **Fast** | Groq | `gpt-oss-120b` | Groq's API, reached by TrueForge on the local machine | free tier / pay-as-you-go |
+| **Thinking** | NVIDIA NIM | `deepseek-ai/deepseek-v4.1-flash` | NVIDIA NIM, reached by TrueForge on the local machine | free credits / pay-as-you-go |
+
+Both providers are OpenAI-compatible and are registered **in TrueForge**
+(`POST /api/v1/settings/model-providers`, type `custom`). The extension never
+calls a provider itself: it collects the keys once (into VS Code's secret
+storage), registers the providers, and refers to the models by their TrueForge
+name (`groq/gpt-oss-120b`, `nvidia/deepseek-ai/deepseek-v4.1-flash`). No key is
+committed to the repository; the example configuration in
+`examples/models.example.json` contains model names only.
+
+Switching modes is one command (**TrueGuard: Switch Mode**) or the pill in the
+chat; each mode has its own failover chain, so a rate limit in one mode does
+not affect the other. The Thinking mode sends `reasoning_effort: medium`.
+
+**Scorecard table** (criterion → video timestamp → one-line claim) — fill in
+with the timestamps of the recorded demo:
+
+| Criterion | Timestamp | Claim |
+| --- | --- | --- |
+| A1 Inline edit | | |
+| A2 Agent mode | | |
+| A3 Streaming & cancellation | | |
+| B1 Context assembly | | |
+| B2 Diff safety | | |
+| B3 Resilience | | |
+| B4 TrueForge depth | | |
+| C1 Video | | |
+
 ## Links
 
 - Repository: https://github.com/aryankudtarkar/trueguard

@@ -17,6 +17,29 @@ import { existsSync } from 'node:fs';
 const BASE_URL = process.env.TRUEFORGE_BASE_URL ?? 'http://localhost:8790';
 const FAKE_LLM_URL = process.env.FAKE_LLM_URL ?? 'http://127.0.0.1:8799';
 
+/**
+ * The two providers TrueGuard's modes use.
+ * Both are OpenAI-compatible, so they are registered as 'custom' providers.
+ */
+const PROVIDERS = [
+  {
+    name: 'groq',
+    label: 'Groq',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    envKey: 'GROQ_API_KEY',
+    models: [{ modelId: 'gpt-oss-120b', contextLength: 131072, maxOutputTokens: 32768 }],
+  },
+  {
+    name: 'nvidia',
+    label: 'NVIDIA NIM',
+    baseUrl: 'https://integrate.api.nvidia.com/v1',
+    envKey: 'NVIDIA_API_KEY',
+    models: [
+      { modelId: 'deepseek-ai/deepseek-v4.1-flash', contextLength: 131072, maxOutputTokens: 32768 },
+    ],
+  },
+];
+
 /** Register (or update) a model provider. */
 async function putProvider(name, manifest) {
   const existing = await getProviders();
@@ -63,7 +86,7 @@ async function registerFakeProvider() {
   });
 }
 
-/** Real providers from .env: OPENAI_API_KEY, ANTHROPIC_API_KEY, ... */
+/** The real providers from .env: GROQ_API_KEY, NVIDIA_API_KEY, ... */
 async function registerRealProviders() {
   if (!existsSync('.env')) {
     console.log('no .env found: only the development provider was registered');
@@ -75,6 +98,31 @@ async function registerRealProviders() {
     const match = /^\s*([A-Z0-9_]+)\s*=\s*(.+)\s*$/.exec(line);
     if (match) { values.set(match[1], match[2].replace(/^["']|["']$/g, '')); }
   }
+
+  for (const provider of PROVIDERS) {
+    const key = values.get(provider.envKey);
+    if (!key) {
+      console.log(`${provider.label}: no ${provider.envKey} in .env, skipped`);
+      continue;
+    }
+    await putProvider(provider.name, {
+      type: 'custom',
+      name: provider.name,
+      base_url: provider.baseUrl,
+      auth: { api_key: key },
+      models: provider.models.map((m) => ({
+        model_id: m.modelId,
+        name: m.modelId,
+        properties: {
+          context_length: m.contextLength,
+          max_output_tokens: m.maxOutputTokens,
+          reasoning_efforts: ['none', 'low', 'medium', 'high'],
+        },
+      })),
+    });
+  }
+
+  // Any other provider the user put in .env (OPENAI_API_KEY, …).
   const providers = [
     { key: 'OPENAI_API_KEY', name: 'openai', models: ['gpt-4o-mini'] },
     { key: 'ANTHROPIC_API_KEY', name: 'anthropic', models: ['claude-3-5-haiku-latest'] },

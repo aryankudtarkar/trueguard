@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { resolveCommandCwd } from './exec/cwd';
 import { SessionLog } from './util/sessionLog';
+import { configureProviders } from './providers/setup';
+import { MODES, PROVIDER_PRESETS, defaultModelsFor } from './providers/presets';
 import * as path from 'node:path';
 import { EditorMcpServer, MCP_SERVER_NAME } from './mcp/editorServer';
 import { FaultHook } from './edits/faults';
@@ -222,6 +224,74 @@ export function activate(context: vscode.ExtensionContext): TrueGuardApi {
       await vscode.window.showTextDocument(doc, { preview: false });
     }),
   );
+
+  /**
+   * Tell the user when the active mode needs a provider that is not set up
+   * yet, instead of letting every turn fail with a provider error.
+   */
+  async function checkProviderSetup(): Promise<void> {
+    const registered = await server.client.listModelProviders().catch(() => [] as string[]);
+    if (!registered.length) { return; }
+    const model = sessions.activeModel();
+    const provider = model.includes('/') ? model.slice(0, model.indexOf('/')) : '';
+    if (!provider || registered.includes(provider)) { return; }
+    const preset = PROVIDER_PRESETS.find((p) => p.id === provider);
+    const choice = await vscode.window.showWarningMessage(
+      `${preset?.label ?? provider} is not set up in TrueForge, so turns will fail.`,
+      'Configure Providers',
+    );
+    if (choice === 'Configure Providers') {
+      await vscode.commands.executeCommand('trueguard.configureProviders');
+    }
+  }
+  void checkProviderSetup();
+
+  // The onboarding step: the provider keys go into SecretStorage and the
+  // providers are registered in TrueForge (the extension never calls them).
+  registerDisposable(
+    vscode.commands.registerCommand('trueguard.configureProviders', async () => {
+      await configureProviders({ client: server.client, secrets: context.secrets });
+      await applyDefaultModeModels();
+    }),
+  );
+
+  registerDisposable(
+    vscode.commands.registerCommand('trueguard.switchMode', async () => {
+      const items = MODES.map((mode) => ({
+        label: mode.label,
+        description: mode.description,
+        detail: mode.defaultModel,
+        id: mode.id,
+      }));
+      const pick = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Choose the mode for the next turns',
+      });
+      if (!pick) { return; }
+      await vscode.workspace.getConfiguration('trueguard').update('mode', pick.id, vscode.ConfigurationTarget.Global);
+      void vscode.window.showInformationMessage(`Switched to ${pick.label} mode. New turns use ${pick.detail}.`);
+    }),
+  );
+
+  /**
+   * Fill a mode's model chain with its default — but only for the providers
+   * that are actually registered in TrueForge. A chain the user set by hand is
+   * never touched.
+   */
+  async function applyDefaultModeModels(): Promise<void> {
+    const registered = await server.client.listModelProviders().catch(() => [] as string[]);
+    if (!registered.length) { return; }
+    const cfg = vscode.workspace.getConfiguration('trueguard');
+    for (const mode of MODES) {
+      const key = `modes.${mode.id}.models`;
+      const current = cfg.get<Array<{ id: string; label: string; ref: string }>>(key, []);
+      if (current.length) { continue; }
+      const provider = mode.defaultModel.includes('/')
+        ? mode.defaultModel.slice(0, mode.defaultModel.indexOf('/'))
+        : '';
+      if (!provider || !registered.includes(provider)) { continue; }
+      await cfg.update(key, defaultModelsFor(mode), vscode.ConfigurationTarget.Global);
+    }
+  }
 
   // Focus helpers contributed via views/item commands
   registerDisposable(

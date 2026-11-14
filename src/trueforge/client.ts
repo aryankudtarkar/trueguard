@@ -76,6 +76,36 @@ export class TrueForgeClient {
     }
   }
 
+  /**
+   * Register (or update) a model provider in TrueForge.
+   *
+   * The extension never calls the provider itself: it only tells TrueForge
+   * which provider and models exist, so the agent loop stays inside
+   * TrueForge (the brief's eligibility rule).
+   */
+  async upsertModelProvider(manifest: Record<string, unknown>): Promise<void> {
+    const names = await this.listModelProviders().catch(() => [] as string[]);
+    const name = String(manifest.name ?? '');
+    const method = names.includes(name) ? 'PUT' : 'POST';
+    const res = await fetch(this.url('/settings/model-providers'), {
+      method,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ manifest }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) { throw new TrueForgeError(res.status, await safeErrorBody(res)); }
+  }
+
+  /** The registered provider names. */
+  async listModelProviders(): Promise<string[]> {
+    const res = await fetch(this.url('/settings/model-providers'), { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) { throw new TrueForgeError(res.status, await safeErrorBody(res)); }
+    const parsed = apiEnvelopeSchema.parse(await res.json());
+    return z.array(z.object({ name: z.string().min(1) }).passthrough()).catch([])
+      .transform((items) => items.map((i) => i.name))
+      .parse(parsed.data);
+  }
+
   /** List registered MCP server names (cheap idempotency check for the connector). */
   async listMcpServers(): Promise<string[]> {
     const res = await fetch(this.url('/settings/mcp-servers'), { signal: AbortSignal.timeout(5000) });

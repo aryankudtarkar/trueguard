@@ -9,6 +9,7 @@ import {
 } from './schemas';
 import { logger } from '../util/logger';
 import { FailoverManager, type ModelProfile } from '../failover/manager';
+import { modeById, type ModeId } from '../providers/presets';
 import { SessionLog } from '../util/sessionLog';
 
 export interface StoredSession {
@@ -113,8 +114,9 @@ export class SessionManager implements vscode.Disposable {
   async ensureSession(modelName: string): Promise<string> {
     if (this.activeSessionId) { return this.activeSessionId; }
     const mcpServers = this.mcpServers?.() ?? [];
+    const effort = this.reasoningEffort();
     const session = await this.server.client.createSession({
-      model: { name: modelName },
+      model: { name: modelName, ...(effort ? { params: { reasoning_effort: effort } } : {}) },
       instructions:
         'You are TrueGuard, a careful coding agent inside VS Code. Read before you write: ' +
         'use the editor tools to look at the code you are about to change. Propose edits with ' +
@@ -293,9 +295,40 @@ export class SessionManager implements vscode.Disposable {
   }
 
   /** The configured model profiles (trueguard.models). */
+  /**
+   * The models of the ACTIVE mode, in failover order.
+   *
+   * Each mode has its own chain (Fast, Thinking); when a mode's list is
+   * empty the generic `trueguard.models` list is used.
+   */
   configuredModels(): ModelProfile[] {
-    const models = vscode.workspace.getConfiguration('trueguard').get<ModelProfile[]>('models', []);
-    return models.filter((m) => typeof m?.ref === 'string' && m.ref.length > 0);
+    const cfg = vscode.workspace.getConfiguration('trueguard');
+    const mode = this.mode();
+    const scoped = cfg.get<ModelProfile[]>(`modes.${mode}.models`, []);
+    const models = scoped.filter((m) => typeof m?.ref === 'string' && m.ref.length > 0);
+    if (models.length) { return models; }
+    const generic = cfg.get<ModelProfile[]>('models', []);
+    return generic.filter((m) => typeof m?.ref === 'string' && m.ref.length > 0);
+  }
+
+  /** The active mode. */
+  mode(): ModeId {
+    const value = vscode.workspace.getConfiguration('trueguard').get<string>('mode', 'fast');
+    return modeById(value)?.id ?? 'fast';
+  }
+
+  /** The model of the active mode (the first of its chain). */
+  activeModel(): string {
+    const models = this.configuredModels();
+    return models[0]?.ref ?? modeById(this.mode())?.defaultModel ?? 'openai/gpt-4o-mini';
+  }
+
+  /** The reasoning effort for the active mode (undefined when it has none). */
+  reasoningEffort(): string | undefined {
+    const mode = modeById(this.mode());
+    if (!mode?.reasoningEffort) { return undefined; }
+    const override = vscode.workspace.getConfiguration('trueguard').get<string>('reasoningEffort', '');
+    return override || mode.reasoningEffort;
   }
 
   /** The failover settings (visible and tunable, unlike a hard-coded retry). */

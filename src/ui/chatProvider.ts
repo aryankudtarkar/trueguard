@@ -4,6 +4,7 @@ import { webviewToHostMessageSchema, type WebviewToHostParsed } from './chatProt
 import { type ServerManager, ServerState } from '../trueforge/serverManager';
 import { type SessionManager } from '../trueforge/sessionManager';
 import { type EditService, type ReviewUpdate } from '../review/editService';
+import { MODES, modeById } from '../providers/presets';
 import { logger, redact } from '../util/logger';
 import { findFilesForMention } from '../context/mentions';
 import { describeContext, formatContext, retrieveContext } from '../context/retriever';
@@ -209,17 +210,48 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   private async showSwitchModelQuickPick(): Promise<void> {
-    const models = vscode.workspace.getConfiguration('trueguard').get<Array<{ id: string; label: string; ref: string }>>('models', []);
+    const models = this.sessions.configuredModels();
     if (!models.length) {
-      void vscode.window.showInformationMessage('No models configured. Add one in Settings under TrueGuard: Models.');
+      void vscode.window.showInformationMessage(
+        'No models configured. Add your providers with "TrueGuard: Configure Providers".',
+      );
       return;
     }
-    const pick = await vscode.window.showQuickPick(
-      models.map((m) => ({ label: m.label, description: m.ref, id: m.id })),
-      { placeHolder: 'Switch the model for new turns' },
-    );
+    const active = this.sessions.mode();
+    const items = [
+      ...MODES.map((mode) => ({
+        label: mode.label,
+        description: mode.description,
+        detail: mode.defaultModel,
+        itemKind: 'mode' as const,
+        id: mode.id,
+      })),
+      ...models.map((m) => ({
+        label: m.label,
+        description: m.ref,
+        detail: `Model in the ${active} chain`,
+        itemKind: 'model' as const,
+        id: m.id,
+      })),
+    ];
+    const pick = await vscode.window.showQuickPick(items as Array<{
+      label: string;
+      description: string;
+      detail: string;
+      itemKind: 'mode' | 'model';
+      id: string;
+    }>, {
+      placeHolder: 'Choose a mode or a model for the next turns',
+    });
     if (!pick) { return; }
+    if (pick.itemKind === 'mode') {
+      await vscode.workspace.getConfiguration('trueguard').update('mode', pick.id, vscode.ConfigurationTarget.Global);
+      this.postState();
+      this.addSystemMessage(`Switched to ${pick.label} mode. New turns use ${pick.detail}.`);
+      return;
+    }
     const idx = models.findIndex((m) => m.id === pick.id);
+    if (idx < 0) { return; }
     await vscode.workspace.getConfiguration('trueguard').update('activeModelIndex', idx, vscode.ConfigurationTarget.Global);
     this.addSystemMessage(`Switched to ${pick.label}. New turns use ${pick.description}.`);
   }
@@ -354,10 +386,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
   }
 
   private primaryModel(): string {
-    const cfg = vscode.workspace.getConfiguration('trueguard');
-    const models = cfg.get<Array<{ id: string; label: string; ref: string }>>('models', []);
-    const idx = cfg.get<number>('activeModelIndex', 0);
-    return models[idx]?.ref ?? models[0]?.ref ?? 'openai/gpt-4o-mini';
+    return this.sessions.activeModel();
+  }
+
+  /** The label of the mode button: "Fast · GPT-OSS 120B". */
+  private modeLabel(): string {
+    const mode = modeById(this.sessions.mode());
+    const model = this.sessions.activeModel();
+    const short = model.includes('/') ? model.slice(model.indexOf('/') + 1) : model;
+    return `${mode?.label ?? 'Fast'} · ${short}`;
   }
 
   private onStreamEvent(agentId: string, event: StreamingEvent): void {
@@ -582,6 +619,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
       working: this.working,
       pendingReviews: this.pendingReviews,
       configured: this.hasModels(),
+      mode: this.modeLabel(),
     });
   }
 
@@ -591,10 +629,9 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     this.postState();
   }
 
-  /** Is at least one model configured? (the "Not configured" state) */
+  /** Is at least one model configured for the active mode? */
   private hasModels(): boolean {
-    const models = vscode.workspace.getConfiguration('trueguard').get<Array<{ ref?: string }>>('models', []);
-    return models.some((m) => typeof m?.ref === 'string' && m.ref.length > 0);
+    return this.sessions.configuredModels().length > 0;
   }
 
   private post(m: HostToWebviewMessage): void {

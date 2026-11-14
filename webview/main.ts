@@ -36,6 +36,7 @@ let chip: ContextChip | null = null;
 let serverState = 'stopped';
 let pendingReviews = 0;
 let configured = true;
+let modeLabel = 'Fast';
 
 function render(): void {
   renderMessages();
@@ -263,7 +264,8 @@ function renderComposer(): void {
     : offline
       ? 'TrueForge is not running'
       : 'Ask TrueGuard to change code…';
-  modelPill.textContent = pendingReviews > 0 ? `${pendingReviews} to review` : 'model';
+  modelPill.textContent = pendingReviews > 0 ? `${pendingReviews} to review` : modeLabel;
+  modelPill.setAttribute('aria-label', `Mode: ${modeLabel}. Click to switch mode or model.`);
 }
 
 function sendMessage(): void {
@@ -383,6 +385,7 @@ window.addEventListener('message', (e: MessageEvent) => {
       working = m.working;
       pendingReviews = m.pendingReviews;
       configured = m.configured !== false;
+      modeLabel = m.mode ?? modeLabel;
       break;
     }
     case 'messages': {

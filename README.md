@@ -50,11 +50,32 @@ npm run setup                     # registers it as "fake-provider"
 npm run trueforge                 # the agent harness on :8790
 ```
 
-Models are configured in **Settings → TrueGuard: Models**. Each entry needs
-an `id`, a `label` and a `ref` (the model identifier TrueForge expects, e.g.
-`openai/gpt-4o-mini`). Index 0 is the primary; the rest are the fallbacks.
+Models are configured in **Settings → TrueGuard → Modes**: each mode has its
+own ordered chain (index 0 is the primary, the rest are the fallbacks).
 
-## What you can do
+## The two modes
+
+| Mode | Provider | Model | For |
+| --- | --- | --- | --- |
+| **Fast** | Groq | `gpt-oss-120b` | everyday work: quick answers, small edits |
+| **Thinking** | NVIDIA NIM | `deepseek-ai/deepseek-v4.1-flash` | hard problems: deeper reasoning (`reasoning_effort: medium`) |
+
+Switch with **TrueGuard: Switch Mode**, or from the pill in the chat. Each mode
+has its own failover chain, so a rate limit in one mode never affects the
+other.
+
+**Onboarding asks for the keys once.** *TrueGuard: Configure Providers* (also
+the second step of the walkthrough) prompts for your Groq and NVIDIA NIM keys
+and stores them in VS Code's **secret storage** — never in `settings.json`,
+never in the repository, never in a log. The extension then registers the two
+providers **in TrueForge** and refers to the models by their TrueForge name.
+TrueGuard never calls a provider itself: the agent loop stays inside
+TrueForge.
+
+To change a key later, run the same command again. To use a different model,
+edit the chain in Settings → TrueGuard → *Modes*.
+
+
 
 | Command | What it does |
 | --- | --- |

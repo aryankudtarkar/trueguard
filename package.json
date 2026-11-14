@@ -65,6 +65,16 @@
         "category": "TrueGuard"
       },
       {
+        "command": "trueguard.configureProviders",
+        "title": "TrueGuard: Configure Providers",
+        "category": "TrueGuard"
+      },
+      {
+        "command": "trueguard.switchMode",
+        "title": "TrueGuard: Switch Mode (Fast / Thinking)",
+        "category": "TrueGuard"
+      },
+      {
         "command": "trueguard.newChat",
         "title": "TrueGuard: New Chat",
         "category": "TrueGuard"
@@ -330,6 +340,80 @@
           "type": "integer",
           "default": 60,
           "description": "How long a failed model stays out before it is tried again."
+        },
+        "trueguard.mode": {
+          "type": "string",
+          "enum": [
+            "fast",
+            "thinking"
+          ],
+          "default": "fast",
+          "description": "The active mode: Fast (quick answers) or Thinking (deeper reasoning)."
+        },
+        "trueguard.modes.fast.models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string",
+                "description": "The model identifier TrueForge expects, e.g. groq/gpt-oss-120b."
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "ref"
+            ]
+          },
+          "default": [],
+          "description": "The failover chain of the Fast mode."
+        },
+        "trueguard.modes.thinking.models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string",
+                "description": "The model identifier TrueForge expects, e.g. groq/gpt-oss-120b."
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "ref"
+            ]
+          },
+          "default": [],
+          "description": "The failover chain of the Thinking mode."
+        },
+        "trueguard.reasoningEffort": {
+          "type": "string",
+          "enum": [
+            "",
+            "none",
+            "minimal",
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "default": "",
+          "description": "Reasoning effort sent with the model in Thinking mode. Empty = the mode's default."
         }
       }
     },
@@ -346,6 +430,15 @@
             "media": "media/trueguard.svg",
             "completionEvents": [
               "onCommand:trueguard.startTrueForge"
+            ]
+          },
+          {
+            "id": "trueguard.providers",
+            "title": "Add your providers",
+            "description": "TrueGuard needs a model provider. Paste your Groq and NVIDIA NIM keys once: they are stored in the extension's secret storage and registered in TrueForge.\n[Configure providers](command:trueguard.configureProviders)",
+            "media": "media/trueguard.svg",
+            "completionEvents": [
+              "onCommand:trueguard.configureProviders"
             ]
           },
           {
