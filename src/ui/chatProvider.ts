@@ -685,21 +685,44 @@ function truncateText(text: string, max: number): string {
 }
 
 /**
- * Human label for a tool row: `read_file src/app.ts` (PRD 6.4 — one collapsed
- * line per tool activity). Falls back to the tool name alone.
+ * A human label for a tool row (PRD 6.4: "one collapsed line each, such as
+ * `Read src/app.py`"). The full argument is in the expanded body.
  */
 export function toolLabel(name: string, argsJson: string | undefined): string {
-  if (!argsJson) { return name; }
+  const verb = TOOL_VERBS[name] ?? name;
+  const argument = mainArgument(argsJson);
+  if (!argument) { return verb; }
+  // The file name, not the whole path: the panel is narrow.
+  const short = argument.includes('/') ? argument.slice(argument.lastIndexOf('/') + 1) : argument;
+  return `${verb} ${short}`;
+}
+
+/** The tool names, in the words a person would use. */
+const TOOL_VERBS: Record<string, string> = {
+  read_file: 'Read',
+  list_files: 'Listed',
+  search_text: 'Searched for',
+  get_diagnostics: 'Checked the diagnostics of',
+  get_editor_context: 'Read the editor state of',
+  propose_edit: 'Proposed an edit to',
+  run_command: 'Ran',
+};
+
+/** The argument worth showing next to the tool name. */
+function mainArgument(argsJson: string | undefined): string | undefined {
+  if (!argsJson) { return undefined; }
   try {
     const parsed: unknown = JSON.parse(argsJson);
-    if (!parsed || typeof parsed !== 'object') { return name; }
-    const rec = parsed as Record<string, unknown>;
+    if (!parsed || typeof parsed !== 'object') { return undefined; }
+    const record = parsed as Record<string, unknown>;
     for (const key of ['path', 'pattern', 'command', 'glob']) {
-      const value = rec[key];
-      if (typeof value === 'string' && value) { return `${name} ${value}`; }
+      const value = record[key];
+      if (typeof value === 'string' && value) { return value; }
     }
-    return name;
+    return undefined;
   } catch {
-    return name;
+    return undefined;
   }
 }
+
+

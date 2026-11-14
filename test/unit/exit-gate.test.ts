@@ -30,7 +30,9 @@ describe('phase 1 exit gate: real TrueForge', () => {
       .filter((e): e is Extract<StreamingEvent, { type: 'model.message.delta' }> => e.type === 'model.message.delta')
       .map((e) => e.content ?? '')
       .join('');
-    expect(text).toContain('Hello from the fake model');
+    // The development provider answers from what it was given: the answer
+    // refers to the question, it is not a canned string.
+    expect(text).toContain('Say hello');
   });
 
   it('cancels a stall mid-turn within 1 s via abort + cancel', async (ctx) => {

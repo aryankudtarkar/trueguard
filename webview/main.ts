@@ -289,10 +289,22 @@ function renderChip(): void {
   const chipEl = document.createElement('span');
   chipEl.className = 'chip';
   const label = chip.selection ? `${chip.path} (${chip.selection.startLine}–${chip.selection.endLine})` : chip.path;
-  chipEl.textContent = label;
-  chipEl.title = 'Context sent with your next message. Click to remove.';
+  // The file name first, the folder dimmed: the path is context, not the point.
+  const slash = label.lastIndexOf('/');
+  if (slash > 0) {
+    const dir = document.createElement('span');
+    dir.className = 'chipDir';
+    dir.textContent = `${label.slice(0, slash + 1)}`;
+    const name = document.createElement('span');
+    name.textContent = label.slice(slash + 1);
+    chipEl.append(dir, name);
+  } else {
+    chipEl.textContent = label;
+  }
+  chipEl.title = label;
   chipEl.setAttribute('role', 'button');
   chipEl.setAttribute('tabindex', '0');
+  chipEl.setAttribute('aria-label', `Context file ${label}. Click to remove.`);
   const remove = () => {
     chip = null;
     void vscode.postMessage({ type: 'updateChip', chip: null });

@@ -47,15 +47,16 @@ describe('tool call buffer', () => {
 
 describe('tool label', () => {
   it('shows the tool name and its main argument', () => {
-    expect(toolLabel('read_file', '{"path":"src/app.ts"}')).toBe('read_file src/app.ts');
-    expect(toolLabel('search_text', '{"pattern":"todo"}')).toBe('search_text todo');
-    expect(toolLabel('run_command', '{"command":"npm test"}')).toBe('run_command npm test');
+    expect(toolLabel('read_file', '{"path":"src/app.ts"}')).toBe('Read app.ts');
+    expect(toolLabel('search_text', '{"pattern":"todo"}')).toBe('Searched for todo');
+    expect(toolLabel('run_command', '{"command":"npm test"}')).toBe('Ran npm test');
   });
 
   it('falls back to the bare tool name', () => {
-    expect(toolLabel('get_diagnostics', undefined)).toBe('get_diagnostics');
-    expect(toolLabel('get_diagnostics', 'not json')).toBe('get_diagnostics');
-    expect(toolLabel('get_diagnostics', '{"other":1}')).toBe('get_diagnostics');
+    expect(toolLabel('get_diagnostics', undefined)).toBe('Checked the diagnostics of');
+    expect(toolLabel('get_diagnostics', 'not json')).toBe('Checked the diagnostics of');
+    expect(toolLabel('get_diagnostics', '{"other":1}')).toBe('Checked the diagnostics of');
+    expect(toolLabel('mystery_tool', undefined)).toBe('mystery_tool');
   });
   it('completes a call when its arguments become valid JSON', () => {
     const buf = new ToolCallBuffer();
