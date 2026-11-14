@@ -4,7 +4,7 @@ Owner: Aryan Kudtarkar. Event: TrueFoundry Forge-a-thon, Techfest 2026-27, IIT B
 
 > **Amended 2026-11-14 (owner decision).** The product was renamed from
 > "ForgeGuard" to **TrueGuard**. The extension id is now
-> `trueguard-dev.trueguard`, the commands are `trueguard.*`, and the settings
+> `aryankudtarkar.trueguard`, the commands are `trueguard.*`, and the settings
 > live under `trueguard.*`. The rationale and the full list of changed
 > identifiers are in docs/DECISIONS.md (2026-11-14 — the product is
 > TrueGuard). Every other requirement in this document is unchanged.
@@ -537,7 +537,7 @@ Success metrics: zero silent bad writes across all demo runs, failover overhead 
 
 ### 14.1 Defaults for open questions (use these, log in DECISIONS, do not stop)
 
-- Product name TrueGuard. Extension id trueguard, publisher trueguard-dev. License MIT.
+- Product name TrueGuard. Extension id trueguard, publisher aryankudtarkar. License MIT.
 - Auto-save after apply: on. MCP port 45821 with fallback to the next free port.
 - Models: index 0 is the strongest model the owner has a key for, index 1 is a model from a different provider so a provider outage can be demonstrated.
 - Tool output cap 16 KB. Command timeout 120 s. Session history 20.

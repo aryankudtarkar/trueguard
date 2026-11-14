@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 // runner, see scripts/test-integration.mjs) and contributes views and commands.
 describe('extension activation', () => {
   it('activates and contributes the settings schema', async () => {
-    const ext = vscode.extensions.getExtension('trueguard-dev.trueguard');
+    const ext = vscode.extensions.getExtension('aryankudtarkar.trueguard');
     expect(ext !== undefined).toBe(true);
     await ext?.activate();
     expect(ext?.isActive ?? false).toBe(true);
@@ -16,7 +16,7 @@ describe('extension activation', () => {
   });
 
   it('ships the webview assets the chat needs', async () => {
-    const ext = vscode.extensions.getExtension('trueguard-dev.trueguard');
+    const ext = vscode.extensions.getExtension('aryankudtarkar.trueguard');
     const root = ext?.extensionUri.fsPath ?? '';
     // The chat loads its script AND its stylesheet from out/webview: a
     // packaged extension without them renders unstyled.

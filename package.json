@@ -3,7 +3,7 @@
   "displayName": "TrueGuard",
   "description": "A trustworthy autonomous coding agent in VS Code, running on TrueForge.",
   "version": "0.1.0",
-  "publisher": "trueguard-dev",
+  "publisher": "aryankudtarkar",
   "license": "MIT",
   "private": true,
   "engines": {

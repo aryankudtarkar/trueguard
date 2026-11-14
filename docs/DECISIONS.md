@@ -54,7 +54,7 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 
 - **Context:** PRD calls the folder `trueguard/`; the workspace is `~/Desktop/trueguard`.
 - **Choice:** build in place at `~/Desktop/trueguard`; package name stays
-  `trueguard` (publisher `trueguard-dev`), matching PRD defaults.
+  `trueguard` (publisher `aryankudtarkar`, the owner's GitHub handle).
 - **Consequence:** none beyond path naming.
 
 ## 2026-11-12 — Task 2.4 "reconnect with backoff" interpretation (R12 default)
@@ -105,7 +105,7 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
 - **What changed:**
   | Was | Now |
   | --- | --- |
-  | `forgeguard-dev.forgeguard` (extension id) | `trueguard-dev.trueguard` |
+  | `forgeguard-dev.forgeguard` (extension id) | `aryankudtarkar.trueguard` |
   | `forgeguard.*` (commands) | `trueguard.*` |
   | `forgeguard.*` (settings) | `trueguard.*` |
   | `forgeguard.chatView`, `forgeguard.changesView` | `trueguard.chatView`, `trueguard.changesView` |
@@ -122,10 +122,9 @@ Dated entries: context, options, choice, reason. Includes every deviation from t
   authorised the rename, and the change is recorded here and in the header).
   The git history keeps the old names in the older commits, as a rename's
   history should.
-- **Publisher:** `trueguard-dev`. To publish to the marketplace, an account
-  with that publisher id must exist; `aryankudtarkar` works too if preferred
-  (change `publisher` in package.json and the extension id in
-  test/integration/*).
+- **Publisher:** `aryankudtarkar` (the owner's GitHub handle — the owner
+  decision of 2026-11-14). The extension id is therefore
+  `aryankudtarkar.trueguard`.
 
 ## 2026-11-12 — A failover continues the task; it never restarts it
 - **Context:** cline/cline#713 reports that Cline's retry *"doesn't continue

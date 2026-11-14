@@ -35,7 +35,7 @@ describe('inline edit', () => {
 
     // The command runs without the real input box: the instruction is
     // injected, everything else is the production path.
-    const ext = vscode.extensions.getExtension('trueguard-dev.trueguard');
+    const ext = vscode.extensions.getExtension('aryankudtarkar.trueguard');
     const api = (await ext?.activate()) as unknown as {
       sessions: Parameters<typeof runInlineEdit>[0]['sessions'];
     };

@@ -38,7 +38,7 @@ async function probe(url: string): Promise<boolean> {
 describe('phase 6 exit gate: failover', () => {
   it('continues the turn on the fallback model and tells the user once', async () => {
     if (!(await probe(`${FAKE_LLM}/set-mode`))) { return; } // no fake provider: skip
-    const ext = vscode.extensions.getExtension('trueguard-dev.trueguard');
+    const ext = vscode.extensions.getExtension('aryankudtarkar.trueguard');
     if (!ext) { return; }
     const api = (await ext.activate()) as unknown as TrueGuardApi;
 

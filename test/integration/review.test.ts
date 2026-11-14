@@ -61,7 +61,7 @@ async function setFakeMode(body: Record<string, unknown>): Promise<void> {
 }
 
 async function getApi(): Promise<TrueGuardApi | undefined> {
-  const ext = vscode.extensions.getExtension('trueguard-dev.trueguard');
+  const ext = vscode.extensions.getExtension('aryankudtarkar.trueguard');
   if (!ext) { return undefined; }
   const api = (await ext.activate()) as unknown as TrueGuardApi;
   return api;

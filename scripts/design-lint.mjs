@@ -10,7 +10,9 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const roots = ['src', 'webview'];
-const colorRe = /#[0-9a-fA-F]{3,8}\b|\brgba?\s*\(/;
+// A CSS color literal is #RGB, #RGBA, #RRGGBB or #RRGGBBAA — exactly 3, 4, 6
+// or 8 hex digits. A GitHub issue reference (#713) must not trip the lint.
+const colorRe = /(?:#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b)|(?:\brgba?\s*\()/;
 const pxFontRe = /font-size\s*:\s*\d+px/;
 // Emoji ranges: the UI uses codicons, not emoji.
 const emojiRe = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u;
@@ -30,7 +32,11 @@ function walk(dir) {
     const text = readFileSync(p, 'utf8');
     const lines = text.split('\n');
     lines.forEach((line, i) => {
-      if (colorRe.test(line)) {
+      const trimmed = line.trim();
+      // A color mentioned in a comment is not a style: issue references like
+      // "#713" are not colors.
+      const isComment = trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*');
+      if (colorRe.test(line) && !isComment) {
         failures.push(`${p}:${i + 1}: color literal — use --vscode-* variables or ThemeColor`);
       }
       if (pxFontRe.test(line)) {
